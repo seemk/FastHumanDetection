@@ -12,9 +12,12 @@ add_library(fhd
   fhd_block_allocator.cpp
   fhd_candidate.cpp
   fhd_candidate_db.cpp
+  fhd_classifier.cpp
   fhd_hash.cpp
   fhd_image.cpp
+  fhd_kinect.cpp
   fhd_math.cpp
+  fhd_perf.cpp
   fhd_sampler.cpp
   fhd_segmentation.cpp
 
