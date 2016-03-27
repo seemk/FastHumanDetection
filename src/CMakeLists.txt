@@ -15,6 +15,7 @@ add_library(fhd
   fhd_hash.cpp
   fhd_image.cpp
   fhd_math.cpp
+  fhd_segmentation.cpp
 )
 
 add_executable(
