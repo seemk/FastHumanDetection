@@ -5,13 +5,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/modules")
 
 find_package(Threads)
 
-set(bx_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third_party/bx/include")
-if (WIN32)
-  include_directories("${bx_INCLUDE_DIR}/compat/msvc")
-endif()
-
 add_subdirectory("third_party/glfw-3.1.2")
-#add_subdirectory("third_party/fann")
+add_subdirectory("third_party/fann")
 
 if (WIN32)
   add_definitions(
