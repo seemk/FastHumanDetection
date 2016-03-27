@@ -25,15 +25,16 @@ void fhd_image_clear(fhd_image* img, uint16_t v) {
 }
 
 void fhd_image_map_values(fhd_image* img, uint16_t a, uint16_t b, uint16_t c,
-                      uint16_t d) {
+                          uint16_t d) {
   for (int i = 0; i < img->len; i++) {
     uint16_t v = img->data[i];
     img->data[i] = fhd_map_range(v, a, b, c, d);
   }
 }
 
-void copy_sub_fhd_image_scale(const fhd_image* src, const fhd_image_region* src_reg,
-                          fhd_image* dst, const fhd_image_region* dst_reg) {
+void copy_sub_fhd_image_scale(const fhd_image* src,
+                              const fhd_image_region* src_reg, fhd_image* dst,
+                              const fhd_image_region* dst_reg) {
   const float x_ratio = float(src_reg->width) / float(dst_reg->width);
   const float y_ratio = float(src_reg->height) / float(dst_reg->height);
 
@@ -50,8 +51,8 @@ void copy_sub_fhd_image_scale(const fhd_image* src, const fhd_image_region* src_
   }
 }
 
-void copy_sub_fhd_image(const fhd_image* src, const fhd_image_region* src_reg, fhd_image* dst,
-                    const fhd_image_region* dst_reg) {
+void copy_sub_fhd_image(const fhd_image* src, const fhd_image_region* src_reg,
+                        fhd_image* dst, const fhd_image_region* dst_reg) {
   for (int y = 0; y < src_reg->height; y++) {
     for (int x = 0; x < src_reg->width; x++) {
       int src_index = (src_reg->y + y) * src->width + (src_reg->x + x);
@@ -75,13 +76,20 @@ void transpose_simd_8(const fhd_image* src, fhd_image* dst) {
       const int src_idx = y * src->width + x;
       const int dst_idx = x * dst->width + y;
       __m128i r0 = _mm_load_si128((const __m128i*)&src_data[src_idx]);
-      __m128i r1 = _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride]);
-      __m128i r2 = _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 2]);
-      __m128i r3 = _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 3]);
-      __m128i r4 = _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 4]);
-      __m128i r5 = _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 5]);
-      __m128i r6 = _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 6]);
-      __m128i r7 = _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 7]);
+      __m128i r1 =
+          _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride]);
+      __m128i r2 =
+          _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 2]);
+      __m128i r3 =
+          _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 3]);
+      __m128i r4 =
+          _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 4]);
+      __m128i r5 =
+          _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 5]);
+      __m128i r6 =
+          _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 6]);
+      __m128i r7 =
+          _mm_load_si128((const __m128i*)&src_data[src_idx + src_stride * 7]);
 
       __m128i v0 = _mm_unpacklo_epi16(r0, r1);
       __m128i v1 = _mm_unpacklo_epi16(r2, r3);

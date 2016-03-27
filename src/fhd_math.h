@@ -53,10 +53,10 @@ T fhd_map_range(T x, T a, T b, T c, T d) {
 
 template <typename T>
 T fhd_clamp(T v, T min, T max) {
-	if (v < min) return min;
-	if (v > max) return max;
+  if (v < min) return min;
+  if (v > max) return max;
 
-	return v;
+  return v;
 }
 
 float fhd_fast_atan2(float y, float x);

@@ -109,7 +109,8 @@ float fhd_plane_point_dist(fhd_plane p, fhd_vec3 q) {
 
 fhd_plane fhd_make_plane(fhd_vec3 a, fhd_vec3 b, fhd_vec3 c) {
   fhd_plane p;
-  p.n = fhd_vec3_normalize(fhd_vec3_cross(fhd_vec3_sub(b, a), fhd_vec3_sub(c, a)));
+  p.n = fhd_vec3_normalize(
+      fhd_vec3_cross(fhd_vec3_sub(b, a), fhd_vec3_sub(c, a)));
   p.d = fhd_vec3_dot(p.n, a);
   return p;
 }
