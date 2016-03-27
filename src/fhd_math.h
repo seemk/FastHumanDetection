@@ -60,3 +60,5 @@ T fhd_clamp(T v, T min, T max) {
 }
 
 float fhd_fast_atan2(float y, float x);
+
+fhd_vec3 fhd_pcl_normal(const fhd_vec3* points, int len);

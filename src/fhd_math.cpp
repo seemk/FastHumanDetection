@@ -2,6 +2,7 @@
 #include <math.h>
 #include <float.h>
 #include <assert.h>
+#include <Eigen/Dense>
 
 fhd_vec2 fhd_vec2_sub(fhd_vec2 a, fhd_vec2 b) {
   fhd_vec2 r;
@@ -131,4 +132,28 @@ float fhd_fast_atan2(float y, float x) {
     return -angle;
   else
     return angle;
+}
+
+fhd_vec3 fhd_pcl_normal(const fhd_vec3* points, int len) {
+  Eigen::Matrix3f A = Eigen::Matrix3f::Zero();
+  Eigen::Vector3f b = Eigen::Vector3f::Zero();
+  for (int i = 0; i < len; i++) {
+    const fhd_vec3 v = points[i];
+    A(0, 0) += v.x * v.x;
+    A(0, 1) += v.x * v.y;
+    A(0, 2) += v.x;
+    A(1, 0) += v.x * v.y;
+    A(1, 1) += v.y * v.y;
+    A(1, 2) += v.y;
+    A(2, 0) += v.x;
+    A(2, 1) += v.y;
+
+    b(0) += v.x * v.z;
+    b(1) += v.y * v.z;
+    b(2) += v.z;
+  }
+
+  A(2, 2) += float(len);
+  Eigen::Vector3f solution = A.llt().solve(b);
+  return fhd_vec3_normalize(fhd_vec3{solution(0), solution(1), solution(2)});
 }
