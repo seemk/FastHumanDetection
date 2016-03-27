@@ -113,3 +113,21 @@ fhd_plane fhd_make_plane(fhd_vec3 a, fhd_vec3 b, fhd_vec3 c) {
   p.d = fhd_vec3_dot(p.n, a);
   return p;
 }
+
+float fhd_fast_atan2(float y, float x) {
+  const float THRQTR_PI = 3.f * F_PI_4;
+  float r, angle;
+  float abs_y = fabs(y) + 1e-10f;
+  if (x < 0.0f) {
+    r = (x + abs_y) / (abs_y - x);
+    angle = THRQTR_PI;
+  } else {
+    r = (x - abs_y) / (x + abs_y);
+    angle = F_PI_4;
+  }
+  angle += (0.1963f * r * r - 0.9817f) * r;
+  if (y < 0.0f)
+    return -angle;
+  else
+    return angle;
+}

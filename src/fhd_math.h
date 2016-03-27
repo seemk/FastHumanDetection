@@ -1,5 +1,9 @@
 #pragma once
 
+const float F_PI = 3.14159265358979323846f;
+const float F_PI_2 = F_PI * 0.5f;
+const float F_PI_4 = F_PI * 0.25f;
+
 struct fhd_vec2 {
   float x;
   float y;
@@ -41,3 +45,18 @@ fhd_aabb fhd_aabb_from_points(const fhd_vec2* points, int len);
 
 float fhd_plane_point_dist(fhd_plane p, fhd_vec3 q);
 fhd_plane fhd_make_plane(fhd_vec3 a, fhd_vec3 b, fhd_vec3 c);
+
+template <typename T>
+T fhd_map_range(T x, T a, T b, T c, T d) {
+  return (x - a) * (d - c) / (b - a) + c;
+}
+
+template <typename T>
+T fhd_clamp(T v, T min, T max) {
+	if (v < min) return min;
+	if (v > max) return max;
+
+	return v;
+}
+
+float fhd_fast_atan2(float y, float x);

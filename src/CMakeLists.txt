@@ -9,6 +9,7 @@ add_library(sqlite
 )
 
 add_library(fhd
+  fhd_image.cpp
   fhd_math.cpp
 )
 
