@@ -8,6 +8,10 @@ add_library(sqlite
   sqlite3/sqlite3.c
 )
 
+add_library(fhd
+  fhd_math.cpp
+)
+
 add_executable(
   fhd_ui
   tools/ui.cpp

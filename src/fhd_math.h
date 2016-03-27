@@ -11,6 +11,16 @@ struct fhd_vec3 {
   float z;
 };
 
+struct fhd_aabb {
+  fhd_vec2 top_left;
+  fhd_vec2 bot_right;
+};
+
+struct fhd_plane {
+  fhd_vec3 n;
+  float d;
+};
+
 fhd_vec2 fhd_vec2_sub(fhd_vec2 a, fhd_vec2 b);
 fhd_vec2 fhd_vec2_normalize(fhd_vec2 v);
 fhd_vec2 fhd_vec2_mul(fhd_vec2 a, float s);
@@ -23,3 +33,11 @@ float fhd_vec3_dot(fhd_vec3 a, fhd_vec3 b);
 fhd_vec3 fhd_vec3_sub(fhd_vec3 a, fhd_vec3 b);
 fhd_vec3 fhd_vec3_cross(fhd_vec3 u, fhd_vec3 v);
 
+void fhd_aabb_expand(fhd_aabb* bbox, fhd_vec2 point);
+fhd_vec2 fhd_aabb_center(const fhd_aabb* bbox);
+bool fhd_aabb_overlap(const fhd_aabb* a, const fhd_aabb* b);
+fhd_vec2 fhd_aabb_size(const fhd_aabb* a);
+fhd_aabb fhd_aabb_from_points(const fhd_vec2* points, int len);
+
+float fhd_plane_point_dist(fhd_plane p, fhd_vec3 q);
+fhd_plane fhd_make_plane(fhd_vec3 a, fhd_vec3 b, fhd_vec3 c);
