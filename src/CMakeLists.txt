@@ -15,7 +15,10 @@ add_library(fhd
   fhd_hash.cpp
   fhd_image.cpp
   fhd_math.cpp
+  fhd_sampler.cpp
   fhd_segmentation.cpp
+
+  pcg/pcg_basic.c
 )
 
 add_executable(
