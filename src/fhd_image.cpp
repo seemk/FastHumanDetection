@@ -32,7 +32,7 @@ void fhd_image_map_values(fhd_image* img, uint16_t a, uint16_t b, uint16_t c,
   }
 }
 
-void copy_sub_fhd_image_scale(const fhd_image* src,
+void fhd_copy_sub_image_scale(const fhd_image* src,
                               const fhd_image_region* src_reg, fhd_image* dst,
                               const fhd_image_region* dst_reg) {
   const float x_ratio = float(src_reg->width) / float(dst_reg->width);
@@ -51,7 +51,7 @@ void copy_sub_fhd_image_scale(const fhd_image* src,
   }
 }
 
-void copy_sub_fhd_image(const fhd_image* src, const fhd_image_region* src_reg,
+void fhd_copy_sub_image(const fhd_image* src, const fhd_image_region* src_reg,
                         fhd_image* dst, const fhd_image_region* dst_reg) {
   for (int y = 0; y < src_reg->height; y++) {
     for (int x = 0; x < src_reg->width; x++) {
