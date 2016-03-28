@@ -48,12 +48,10 @@ void update_depth_texture(uint8_t* texture_data, const uint16_t* depth,
     int idx = 4 * i;
 
     if (reading >= 500 && reading <= 4500) {
-      // depth grey
       texture_data[idx] = normalized;
       texture_data[idx + 1] = 255 - normalized;
       texture_data[idx + 2] = 255 - normalized;
     } else {
-      // blue
       texture_data[idx] = 0;
       texture_data[idx + 1] = 0;
       texture_data[idx + 2] = 0;
@@ -116,7 +114,7 @@ int main(int argc, char** argv) {
 
     ImGui::Begin("foo", &show_window,
                  ImVec2(float(display_w), float(display_h)), -1.f, flags);
-    ImGui::Image((void*)depth_texture.handle, ImVec2(512, 424));
+    ImGui::Image((void*)intptr_t(depth_texture.handle), ImVec2(512, 424));
     ImGui::End();
 
     glViewport(0, 0, display_w, display_h);
