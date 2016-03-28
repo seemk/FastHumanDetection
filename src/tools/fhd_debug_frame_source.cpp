@@ -18,3 +18,11 @@ const uint16_t* fhd_debug_frame_source::get_frame() {
   frame = (frame + 1) % 100;
   return depth_data;
 }
+
+int fhd_debug_frame_source::current_frame() const {
+  return frame;
+}
+
+int fhd_debug_frame_source::total_frames() const {
+  return 100;
+}

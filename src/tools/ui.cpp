@@ -114,6 +114,7 @@ int main(int argc, char** argv) {
 
     ImGui::Begin("foo", &show_window,
                  ImVec2(float(display_w), float(display_h)), -1.f, flags);
+    ImGui::Text("frame %d/%d", frame_source->current_frame(), frame_source->total_frames());
     ImGui::Image((void*)intptr_t(depth_texture.handle), ImVec2(512, 424));
     ImGui::End();
 
