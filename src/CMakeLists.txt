@@ -34,6 +34,7 @@ add_library(fhd
 
 add_executable(
   fhd_ui
+  tools/fhd_debug_frame_source.cpp
   tools/ui.cpp
 )
 

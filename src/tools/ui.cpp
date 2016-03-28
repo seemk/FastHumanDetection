@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <GLFW/glfw3.h>
+#include "fhd_debug_frame_source.h"
+#include "../fhd_math.h"
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_glfw.h"
 #include <stdlib.h>
@@ -13,7 +15,6 @@ struct fhd_texture {
   int len;
 };
 
-
 fhd_texture create_texture(int width, int height) {
   fhd_texture t;
   glGenTextures(1, &t.handle);
@@ -25,8 +26,40 @@ fhd_texture create_texture(int width, int height) {
   glBindTexture(GL_TEXTURE_2D, t.handle);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, NULL);
   return t;
+}
+
+uint8_t depth_to_byte(uint16_t value, uint16_t min, uint16_t max) {
+  const uint32_t v = fhd_clamp(value, min, max);
+  const uint32_t lmin = min;
+  const uint32_t lmax = max;
+  return uint8_t((v - lmin) * 255 / (lmax - lmin));
+}
+
+void update_depth_texture(uint8_t* texture_data, const uint16_t* depth,
+                          int len) {
+  for (int i = 0; i < len; i++) {
+    uint16_t reading = depth[i];
+    uint8_t normalized =
+        depth_to_byte(reading, 500, 4500);
+
+    int idx = 4 * i;
+
+    if (reading >= 500 && reading <= 4500) {
+      // depth grey
+      texture_data[idx] = normalized;
+      texture_data[idx + 1] = 255 - normalized;
+      texture_data[idx + 2] = 255 - normalized;
+    } else {
+      // blue
+      texture_data[idx] = 0;
+      texture_data[idx + 1] = 0;
+      texture_data[idx + 2] = 0;
+    }
+    texture_data[idx + 3] = 255;
+  }
 }
 
 void glfwError(int error, const char* description) {
@@ -47,7 +80,9 @@ int main(int argc, char** argv) {
 
   fhd_texture depth_texture = create_texture(512, 424);
 
-  uint8_t* depth_data = (uint8_t*)calloc(depth_texture.bytes, 1);
+  fhd_frame_source* frame_source = new fhd_debug_frame_source();
+
+  uint8_t* depth_texture_data = (uint8_t*)calloc(depth_texture.bytes, 1);
 
   ImGui_ImplGlfw_Init(window, true);
 
@@ -59,20 +94,19 @@ int main(int argc, char** argv) {
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
+
+    const uint16_t* depth_data = frame_source->get_frame();
+    update_depth_texture(depth_texture_data, depth_data, 512 * 424);
+
     ImGui_ImplGlfw_NewFrame();
 
     int display_w, display_h;
     glfwGetFramebufferSize(window, &display_w, &display_h);
 
-    for (int i = 0; i < depth_texture.len; i++) {
-      depth_data[i * 4] = display_w % 255;
-      depth_data[i * 4 + 1] = 0;
-      depth_data[i * 4 + 2] = display_h % 255;
-      depth_data[i * 4 + 3] = 255;
-    }
-
     glBindTexture(GL_TEXTURE_2D, depth_texture.handle);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, depth_texture.width, depth_texture.height, GL_RGBA, GL_UNSIGNED_BYTE, depth_data);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, depth_texture.width,
+                    depth_texture.height, GL_RGBA, GL_UNSIGNED_BYTE,
+                    depth_texture_data);
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
 
