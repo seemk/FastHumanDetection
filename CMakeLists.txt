@@ -1,13 +1,15 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
 project(FastHumanDetection)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/modules")
 
 find_package(Threads)
+find_package(OpenMP)
 
 add_subdirectory("third_party/glfw-3.1.2")
 add_subdirectory("third_party/fann")
 
+set (CMAKE_CXX_STANDARD 11)
 if (WIN32)
   add_definitions(
     -D_WIN32_WINNT=0x0501
@@ -15,7 +17,7 @@ if (WIN32)
     -D_CRT_SECURE_NO_WARNINGS
   )
 else()
-  add_definitions(-std=c++11 -Wall -Wextra -march=native)
+  add_definitions(-Wall -Wextra -march=native)
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

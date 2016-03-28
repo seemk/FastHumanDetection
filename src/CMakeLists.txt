@@ -8,7 +8,14 @@ add_library(sqlite
   sqlite3/sqlite3.c
 )
 
+if (OPENMP_FOUND)
+  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  add_definitions(-DFHD_OMP)
+endif()
+
 add_library(fhd
+  fhd.cpp
   fhd_block_allocator.cpp
   fhd_candidate.cpp
   fhd_candidate_db.cpp
