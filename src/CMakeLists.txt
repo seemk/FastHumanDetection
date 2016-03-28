@@ -27,6 +27,7 @@ add_library(fhd
   fhd_perf.cpp
   fhd_sampler.cpp
   fhd_segmentation.cpp
+  fhd_sqlite_source.cpp
 
   pcg/pcg_basic.c
 )
