@@ -27,8 +27,7 @@ fhd_sqlite_source::fhd_sqlite_source(const char* database) {
     res = sqlite3_step(count_stmt);
 
     if (res == SQLITE_ROW) {
-      total_frames = sqlite3_column_int(count_stmt, 0);
-      printf("depth frames: %d\n", total_frames);
+      db_total_frames = sqlite3_column_int(count_stmt, 0);
       depth_data_len = 512 * 424;
       depth_data = (uint16_t*)calloc(depth_data_len, sizeof(uint16_t));
     }
@@ -43,7 +42,7 @@ fhd_sqlite_source::~fhd_sqlite_source() {
 }
 
 const uint16_t* fhd_sqlite_source::get_frame() {
-  if (!db || total_frames == 0) return NULL;
+  if (!db || db_total_frames == 0) return NULL;
 
   advance();
 
@@ -52,7 +51,7 @@ const uint16_t* fhd_sqlite_source::get_frame() {
 
 void fhd_sqlite_source::advance() {
   sqlite3_reset(frame_query);
-  sqlite3_bind_int(frame_query, 1, current_frame);
+  sqlite3_bind_int(frame_query, 1, db_current_frame);
   int res;
 
   while ((res = sqlite3_step(frame_query)) == SQLITE_ROW) {
@@ -64,11 +63,19 @@ void fhd_sqlite_source::advance() {
     if (bytes_to_copy > req_depth_bytes) bytes_to_copy = req_depth_bytes;
     memcpy(depth_data, blob, bytes_to_copy);
 
-    current_frame++;
-    if (current_frame > total_frames) current_frame = 1;
+    db_current_frame++;
+    if (db_current_frame > db_total_frames) db_current_frame = 1;
   }
 
   if (res != SQLITE_DONE) {
     printf("failed to query frame: %s\n", sqlite3_errmsg(db));
   }
+}
+
+int fhd_sqlite_source::current_frame() const {
+  return db_current_frame;
+}
+
+int fhd_sqlite_source::total_frames() const {
+  return db_total_frames;
 }

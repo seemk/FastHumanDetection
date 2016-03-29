@@ -4,6 +4,7 @@
 #include "../fhd_math.h"
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_glfw.h"
+#include "../fhd_sqlite_source.h"
 #include <stdlib.h>
 
 struct fhd_texture {
@@ -78,7 +79,7 @@ int main(int argc, char** argv) {
 
   fhd_texture depth_texture = create_texture(512, 424);
 
-  fhd_frame_source* frame_source = new fhd_debug_frame_source();
+  fhd_frame_source* frame_source = new fhd_sqlite_source("train12.db");
 
   uint8_t* depth_texture_data = (uint8_t*)calloc(depth_texture.bytes, 1);
 

@@ -40,6 +40,7 @@ add_executable(
 
 target_link_libraries(
   fhd_ui
+  fhd
   sqlite
   imgui
   glfw
