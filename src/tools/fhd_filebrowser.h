@@ -3,6 +3,11 @@
 #include <vector>
 #include <string>
 
+struct fhd_file {
+  std::string name;
+  std::string path;
+};
+
 struct fhd_filebrowser {
   fhd_filebrowser(const char* root);
 

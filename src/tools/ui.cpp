@@ -6,56 +6,12 @@
 #include "../imgui/imgui_impl_glfw.h"
 #include "../fhd_sqlite_source.h"
 #include "../fhd_classifier.h"
+#include "../fhd_image.h"
 #include "../fhd.h"
+#include "fhd_texture.h"
 #include "fhd_filebrowser.h"
 #include <stdlib.h>
-
-
-void render_directory(fhd_filebrowser* browser) {
-
-  ImGui::BeginChild("files", ImVec2(400, 200), true);
-
-  int current = browser->selected_path;
-  int new_selection = -1;
-  for (int i = 0; i < int(browser->files.size()); i++) {
-    const char* file = browser->files[i].c_str();
-    if (ImGui::Selectable(file, i == current)) {
-      new_selection = i;
-    }
-  }
-
-  ImGui::EndChild();
-
-  if (const char* selected_path = browser->get_path(new_selection)) {
-    browser->selected_path = new_selection;
-    browser->set_root(selected_path);
-  }
-}
-
-struct fhd_texture {
-  GLuint handle;
-  int width;
-  int height;
-  int pitch;
-  int bytes;
-  int len;
-};
-
-fhd_texture create_texture(int width, int height) {
-  fhd_texture t;
-  glGenTextures(1, &t.handle);
-  t.width = width;
-  t.height = height;
-  t.pitch = width * 4;
-  t.bytes = t.pitch * height;
-  t.len = width * height;
-  glBindTexture(GL_TEXTURE_2D, t.handle);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
-               GL_UNSIGNED_BYTE, NULL);
-  return t;
-}
+#include <memory>
 
 uint8_t depth_to_byte(uint16_t value, uint16_t min, uint16_t max) {
   const uint32_t v = fhd_clamp(value, min, max);
@@ -85,6 +41,82 @@ void update_depth_texture(uint8_t* texture_data, const uint16_t* depth,
   }
 }
 
+struct fhd_debug_ui {
+  fhd_debug_ui(fhd_context* fhd);
+  ~fhd_debug_ui();
+
+  fhd_context* fhd = NULL;
+  uint8_t* texture_data;
+  bool show_candidates = false;
+  std::vector<fhd_texture> textures;
+
+  fhd_image* candidate_images;
+};
+
+fhd_debug_ui::fhd_debug_ui(fhd_context* fhd)
+    : fhd(fhd),
+      texture_data((uint8_t*)calloc(
+          FHD_HOG_WIDTH * FHD_HOG_HEIGHT * 4 * fhd->candidates_capacity, 1)) {
+  candidate_images =
+      (fhd_image*)calloc(fhd->candidates_capacity, sizeof(fhd_image));
+  for (int i = 0; i < fhd->candidates_capacity; i++) {
+    fhd_texture t = fhd_create_texture(FHD_HOG_WIDTH, FHD_HOG_HEIGHT);
+    textures.push_back(t);
+    fhd_image_init(&candidate_images[i], FHD_HOG_WIDTH, FHD_HOG_HEIGHT);
+  }
+}
+
+fhd_debug_ui::~fhd_debug_ui() {
+  for (fhd_texture t : textures) {
+    fhd_texture_destroy(t);
+  }
+}
+
+void fhd_debug_update_candidates(fhd_debug_ui* ui,
+                                 const fhd_candidate* candidates, int len) {
+  for (int i = 0; i < len; i++) {
+    const fhd_candidate* candidate = &candidates[i];
+    fhd_image* candidate_img = &ui->candidate_images[i];
+
+    fhd_image_region src_reg;
+    src_reg.x = 1;
+    src_reg.y = 1;
+    src_reg.width = candidate->depth.width - 1;
+    src_reg.height = candidate->depth.height - 1;
+
+    fhd_image_region dst_reg;
+    dst_reg.x = 0;
+    dst_reg.y = 0;
+    dst_reg.width = candidate_img->width;
+    dst_reg.height = candidate_img->height;
+
+    fhd_copy_sub_image(&candidate->depth, &src_reg, candidate_img, &dst_reg);
+    update_depth_texture(ui->texture_data, candidate_img->data,
+                         candidate_img->len);
+    fhd_texture_update(&ui->textures[i], ui->texture_data);
+  }
+}
+
+void render_directory(fhd_filebrowser* browser) {
+  ImGui::BeginChild("files", ImVec2(400, 200), true);
+
+  int current = browser->selected_path;
+  int new_selection = -1;
+  for (int i = 0; i < int(browser->files.size()); i++) {
+    const char* file = browser->files[i].c_str();
+    if (ImGui::Selectable(file, i == current)) {
+      new_selection = i;
+    }
+  }
+
+  ImGui::EndChild();
+
+  if (const char* selected_path = browser->get_path(new_selection)) {
+    browser->selected_path = new_selection;
+    browser->set_root(selected_path);
+  }
+}
+
 void glfwError(int error, const char* description) {
   fprintf(stderr, "GLFW error: %i: %s\n", error, description);
 }
@@ -101,14 +133,15 @@ int main(int argc, char** argv) {
       glfwCreateWindow(mode->width, mode->height, "HumanDetection", NULL, NULL);
   glfwMakeContextCurrent(window);
 
-  fhd_texture depth_texture = create_texture(512, 424);
+  fhd_texture depth_texture = fhd_create_texture(512, 424);
 
   fhd_filebrowser file_browser(".");
 
   fhd_context detector;
   fhd_context_init(&detector, 512, 424, 8, 8);
 
-  fhd_frame_source* frame_source = new fhd_sqlite_source("train12.db");
+  auto frame_source =
+      std::unique_ptr<fhd_frame_source>(new fhd_debug_frame_source());
   fhd_classifier classifier;
   fhd_classifier_init(&classifier, "classifier.nn");
   detector.classifier = &classifier;
@@ -123,6 +156,8 @@ int main(int argc, char** argv) {
 
   bool show_window = true;
 
+  fhd_debug_ui debug_ui(&detector);
+
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
@@ -130,6 +165,7 @@ int main(int argc, char** argv) {
 
     if (depth_data) {
       update_depth_texture(depth_texture_data, depth_data, 512 * 424);
+      fhd_texture_update(&depth_texture, depth_texture_data);
 
       fhd_run_pass(&detector, depth_data);
     }
@@ -139,11 +175,6 @@ int main(int argc, char** argv) {
     int display_w, display_h;
     glfwGetFramebufferSize(window, &display_w, &display_h);
 
-    glBindTexture(GL_TEXTURE_2D, depth_texture.handle);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, depth_texture.width,
-                    depth_texture.height, GL_RGBA, GL_UNSIGNED_BYTE,
-                    depth_texture_data);
-
     ImGui::SetNextWindowPos(ImVec2(0, 0));
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove |
@@ -152,6 +183,8 @@ int main(int argc, char** argv) {
 
     ImGui::Begin("foo", &show_window,
                  ImVec2(float(display_w), float(display_h)), -1.f, flags);
+
+    ImGui::BeginGroup();
     ImGui::Text("frame %d/%d", frame_source->current_frame(),
                 frame_source->total_frames());
 
@@ -176,6 +209,33 @@ int main(int argc, char** argv) {
 
     render_directory(&file_browser);
 
+    ImGui::BeginGroup();
+    if (ImGui::Button("open")) {
+      int path_index = file_browser.selected_path;
+      const char* selected_path = file_browser.get_path(path_index);
+      if (selected_path) {
+        frame_source.reset(new fhd_sqlite_source(selected_path));
+      }
+    }
+
+    ImGui::EndGroup();
+    ImGui::EndGroup();
+
+    ImGui::SameLine();
+
+    ImGui::BeginGroup();
+
+    /*
+    for (int i = 0; i < detector.candidates_len; i++) {
+      fhd_texture* t = &debug_ui.textures[i];
+      printf("%d\n", t->handle);
+      ImGui::Image((void*)intptr_t(t->handle), ImVec2(t->width, t->height));
+
+      if (i % 5 < 4) ImGui::SameLine();
+    }*/
+
+    ImGui::EndGroup();
+
     ImGui::End();
 
     glViewport(0, 0, display_w, display_h);
@@ -187,6 +247,7 @@ int main(int argc, char** argv) {
   }
 
   fhd_classifier_destroy(&classifier);
+  fhd_texture_destroy(depth_texture);
   ImGui_ImplGlfw_Shutdown();
   glfwTerminate();
 

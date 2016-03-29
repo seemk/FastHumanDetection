@@ -36,6 +36,7 @@ add_executable(
   fhd_ui
   tools/fhd_debug_frame_source.cpp
   tools/fhd_filebrowser.cpp
+  tools/fhd_texture.cpp
   tools/ui.cpp
 )
 
