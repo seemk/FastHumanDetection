@@ -35,6 +35,7 @@ add_library(fhd
 add_executable(
   fhd_ui
   tools/fhd_debug_frame_source.cpp
+  tools/fhd_filebrowser.cpp
   tools/ui.cpp
 )
 
@@ -44,5 +45,6 @@ target_link_libraries(
   sqlite
   imgui
   glfw
+  floatfann
   ${GLFW_LIBRARIES}
 )
