@@ -1,9 +1,10 @@
 #include <stdio.h>
+#include "../imgui/imgui.h"
+#include "../imgui/imgui_impl_glfw_gl3.h"
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "fhd_debug_frame_source.h"
 #include "../fhd_math.h"
-#include "../imgui/imgui.h"
-#include "../imgui/imgui_impl_glfw.h"
 #include "../fhd_sqlite_source.h"
 #include "../fhd_classifier.h"
 #include "../fhd_image.h"
@@ -43,10 +44,8 @@ void update_depth_texture(uint8_t* texture_data, const uint16_t* depth,
 
 struct fhd_debug_ui {
   fhd_debug_ui(fhd_context* fhd);
-  ~fhd_debug_ui();
 
   fhd_context* fhd = NULL;
-  uint8_t* texture_data;
   bool show_candidates = false;
   std::vector<fhd_texture> textures;
 
@@ -54,21 +53,13 @@ struct fhd_debug_ui {
 };
 
 fhd_debug_ui::fhd_debug_ui(fhd_context* fhd)
-    : fhd(fhd),
-      texture_data((uint8_t*)calloc(
-          FHD_HOG_WIDTH * FHD_HOG_HEIGHT * 4 * fhd->candidates_capacity, 1)) {
+    : fhd(fhd) {
   candidate_images =
       (fhd_image*)calloc(fhd->candidates_capacity, sizeof(fhd_image));
   for (int i = 0; i < fhd->candidates_capacity; i++) {
     fhd_texture t = fhd_create_texture(FHD_HOG_WIDTH, FHD_HOG_HEIGHT);
     textures.push_back(t);
     fhd_image_init(&candidate_images[i], FHD_HOG_WIDTH, FHD_HOG_HEIGHT);
-  }
-}
-
-fhd_debug_ui::~fhd_debug_ui() {
-  for (fhd_texture t : textures) {
-    fhd_texture_destroy(t);
   }
 }
 
@@ -91,9 +82,9 @@ void fhd_debug_update_candidates(fhd_debug_ui* ui,
     dst_reg.height = candidate_img->height;
 
     fhd_copy_sub_image(&candidate->depth, &src_reg, candidate_img, &dst_reg);
-    update_depth_texture(ui->texture_data, candidate_img->data,
+    update_depth_texture(ui->textures[i].data, candidate_img->data,
                          candidate_img->len);
-    fhd_texture_update(&ui->textures[i], ui->texture_data);
+    fhd_texture_update(&ui->textures[i], ui->textures[i].data);
   }
 }
 
@@ -126,52 +117,54 @@ int main(int argc, char** argv) {
 
   if (!glfwInit()) return 1;
 
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
   GLFWmonitor* monitor = glfwGetPrimaryMonitor();
   const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
   GLFWwindow* window =
       glfwCreateWindow(mode->width, mode->height, "HumanDetection", NULL, NULL);
   glfwMakeContextCurrent(window);
+  glewExperimental = GL_TRUE;
+  glewInit();
 
   fhd_texture depth_texture = fhd_create_texture(512, 424);
 
-  fhd_filebrowser file_browser(".");
+  auto frame_source =
+      std::unique_ptr<fhd_frame_source>(new fhd_debug_frame_source());
 
   fhd_context detector;
   fhd_context_init(&detector, 512, 424, 8, 8);
 
-  auto frame_source =
-      std::unique_ptr<fhd_frame_source>(new fhd_debug_frame_source());
   fhd_classifier classifier;
   fhd_classifier_init(&classifier, "classifier.nn");
   detector.classifier = &classifier;
 
-  uint8_t* depth_texture_data = (uint8_t*)calloc(depth_texture.bytes, 1);
-
-  ImGui_ImplGlfw_Init(window, true);
-
+  ImGui_ImplGlfwGL3_Init(window, true);
   ImGui::GetStyle().WindowRounding = 0.f;
-
-  ImVec4 clear_color = ImColor(218, 223, 225);
-
   bool show_window = true;
 
   fhd_debug_ui debug_ui(&detector);
+  fhd_filebrowser file_browser(".");
 
+  ImVec4 clear_color = ImColor(218, 223, 225);
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
     const uint16_t* depth_data = frame_source->get_frame();
-
+   
     if (depth_data) {
-      update_depth_texture(depth_texture_data, depth_data, 512 * 424);
-      fhd_texture_update(&depth_texture, depth_texture_data);
+      update_depth_texture(depth_texture.data, depth_data, 512 * 424);
+      fhd_texture_update(&depth_texture, depth_texture.data);
 
       fhd_run_pass(&detector, depth_data);
+      fhd_debug_update_candidates(&debug_ui, detector.candidates,
+                                  detector.candidates_len);
     }
 
-    ImGui_ImplGlfw_NewFrame();
-
+    ImGui_ImplGlfwGL3_NewFrame();
     int display_w, display_h;
     glfwGetFramebufferSize(window, &display_w, &display_h);
 
@@ -191,8 +184,8 @@ int main(int argc, char** argv) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     ImVec2 p = ImGui::GetCursorScreenPos();
-
     ImGui::Image((void*)intptr_t(depth_texture.handle), ImVec2(512, 424));
+
     for (int i = 0; i < detector.candidates_len; i++) {
       const fhd_candidate* candidate = &detector.candidates[i];
       if (candidate->weight >= 1.f) {
@@ -225,17 +218,13 @@ int main(int argc, char** argv) {
 
     ImGui::BeginGroup();
 
-    /*
     for (int i = 0; i < detector.candidates_len; i++) {
       fhd_texture* t = &debug_ui.textures[i];
-      printf("%d\n", t->handle);
       ImGui::Image((void*)intptr_t(t->handle), ImVec2(t->width, t->height));
-
       if (i % 5 < 4) ImGui::SameLine();
-    }*/
+    }
 
     ImGui::EndGroup();
-
     ImGui::End();
 
     glViewport(0, 0, display_w, display_h);
@@ -246,9 +235,9 @@ int main(int argc, char** argv) {
     glfwSwapBuffers(window);
   }
 
+  fhd_texture_destroy(&depth_texture);
   fhd_classifier_destroy(&classifier);
-  fhd_texture_destroy(depth_texture);
-  ImGui_ImplGlfw_Shutdown();
+  ImGui_ImplGlfwGL3_Shutdown();
   glfwTerminate();
 
   return 0;

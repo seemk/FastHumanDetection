@@ -1,7 +1,7 @@
 add_library(imgui
   imgui/imgui.cpp
   imgui/imgui_draw.cpp
-  imgui/imgui_impl_glfw.cpp
+  imgui/imgui_impl_glfw_gl3.cpp
 )
 
 add_library(sqlite
@@ -46,6 +46,7 @@ target_link_libraries(
   sqlite
   imgui
   glfw
+  glew
   floatfann
   ${GLFW_LIBRARIES}
 )
