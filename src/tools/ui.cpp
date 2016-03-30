@@ -46,14 +46,18 @@ struct fhd_debug_ui {
   fhd_debug_ui(fhd_context* fhd);
 
   fhd_context* fhd = NULL;
+  fhd_filebrowser file_browser;
   bool show_candidates = false;
+  bool show_file_selection = false;
+  int filebrowser_selected_index = -1;
   std::vector<fhd_texture> textures;
+  std::string database_name = "none";
+  std::string classifier_name = "none";
 
   fhd_image* candidate_images;
 };
 
-fhd_debug_ui::fhd_debug_ui(fhd_context* fhd)
-    : fhd(fhd) {
+fhd_debug_ui::fhd_debug_ui(fhd_context* fhd) : fhd(fhd), file_browser(".") {
   candidate_images =
       (fhd_image*)calloc(fhd->candidates_capacity, sizeof(fhd_image));
   for (int i = 0; i < fhd->candidates_capacity; i++) {
@@ -88,13 +92,13 @@ void fhd_debug_update_candidates(fhd_debug_ui* ui,
   }
 }
 
-void render_directory(fhd_filebrowser* browser) {
+void render_directory(fhd_debug_ui* ui) {
   ImGui::BeginChild("files", ImVec2(400, 200), true);
 
-  int current = browser->selected_path;
+  int current = ui->filebrowser_selected_index;
   int new_selection = -1;
-  for (int i = 0; i < int(browser->files.size()); i++) {
-    const char* file = browser->files[i].c_str();
+  for (int i = 0; i < int(ui->file_browser.files.size()); i++) {
+    const char* file = ui->file_browser.files[i].name.c_str();
     if (ImGui::Selectable(file, i == current)) {
       new_selection = i;
     }
@@ -102,9 +106,14 @@ void render_directory(fhd_filebrowser* browser) {
 
   ImGui::EndChild();
 
-  if (const char* selected_path = browser->get_path(new_selection)) {
-    browser->selected_path = new_selection;
-    browser->set_root(selected_path);
+  if (const fhd_file* selected_file = ui->file_browser.get_file(new_selection)) {
+    if (selected_file->is_dir) {
+      ui->filebrowser_selected_index = -1;
+    } else {
+      ui->filebrowser_selected_index = new_selection;
+    }
+
+    ui->file_browser.set_root(selected_file->path.c_str());
   }
 }
 
@@ -130,31 +139,25 @@ int main(int argc, char** argv) {
   glewExperimental = GL_TRUE;
   glewInit();
 
-  fhd_texture depth_texture = fhd_create_texture(512, 424);
-
   auto frame_source =
       std::unique_ptr<fhd_frame_source>(new fhd_debug_frame_source());
 
   fhd_context detector;
   fhd_context_init(&detector, 512, 424, 8, 8);
 
-  fhd_classifier classifier;
-  fhd_classifier_init(&classifier, "classifier.nn");
-  detector.classifier = &classifier;
-
   ImGui_ImplGlfwGL3_Init(window, true);
   ImGui::GetStyle().WindowRounding = 0.f;
   bool show_window = true;
 
   fhd_debug_ui debug_ui(&detector);
-  fhd_filebrowser file_browser(".");
+  fhd_texture depth_texture = fhd_create_texture(512, 424);
 
   ImVec4 clear_color = ImColor(218, 223, 225);
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
     const uint16_t* depth_data = frame_source->get_frame();
-   
+
     if (depth_data) {
       update_depth_texture(depth_texture.data, depth_data, 512 * 424);
       fhd_texture_update(&depth_texture, depth_texture.data);
@@ -178,8 +181,68 @@ int main(int argc, char** argv) {
                  ImVec2(float(display_w), float(display_h)), -1.f, flags);
 
     ImGui::BeginGroup();
-    ImGui::Text("frame %d/%d", frame_source->current_frame(),
-                frame_source->total_frames());
+
+    if (ImGui::Button("open database")) {
+      ImGui::OpenPopup("select database");
+    }
+
+    if (ImGui::Button("open classifier")) {
+      ImGui::OpenPopup("select classifier");
+    }
+
+    if (ImGui::BeginPopupModal("select database", NULL,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+      render_directory(&debug_ui);
+      if (ImGui::Button("open")) {
+        int path_index = debug_ui.filebrowser_selected_index;
+        const fhd_file* selected_file = debug_ui.file_browser.get_file(path_index);
+        if (selected_file) {
+          frame_source.reset(
+              new fhd_sqlite_source(selected_file->path.c_str()));
+          debug_ui.database_name = selected_file->name;
+          debug_ui.filebrowser_selected_index = -1;
+        }
+
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::EndPopup();
+    }
+
+    if (ImGui::BeginPopupModal("select classifier", NULL,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+      render_directory(&debug_ui);
+
+      if (ImGui::Button("open")) {
+        int path_index = debug_ui.filebrowser_selected_index;
+        const fhd_file* selected_file = debug_ui.file_browser.get_file(path_index);
+        if (selected_file) {
+          fhd_classifier_destroy(detector.classifier);
+
+          detector.classifier =
+              fhd_classifier_create(selected_file->path.c_str());
+          if (detector.classifier) {
+            debug_ui.classifier_name = selected_file->name;
+          } else {
+            debug_ui.classifier_name = "none";
+          }
+        }
+
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::EndPopup();
+    }
+
+    ImGui::Text("frame source: %s; frame %d/%d", debug_ui.database_name.c_str(),
+                frame_source->current_frame(), frame_source->total_frames());
+    ImGui::Text("classifier: %s", debug_ui.classifier_name.c_str());
+
+    ImGui::EndGroup();
+
+    ImGui::SameLine();
+
+    ImGui::BeginGroup();
 
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
@@ -200,18 +263,6 @@ int main(int argc, char** argv) {
       }
     }
 
-    render_directory(&file_browser);
-
-    ImGui::BeginGroup();
-    if (ImGui::Button("open")) {
-      int path_index = file_browser.selected_path;
-      const char* selected_path = file_browser.get_path(path_index);
-      if (selected_path) {
-        frame_source.reset(new fhd_sqlite_source(selected_path));
-      }
-    }
-
-    ImGui::EndGroup();
     ImGui::EndGroup();
 
     ImGui::SameLine();
@@ -220,8 +271,9 @@ int main(int argc, char** argv) {
 
     for (int i = 0; i < detector.candidates_len; i++) {
       fhd_texture* t = &debug_ui.textures[i];
-      ImGui::Image((void*)intptr_t(t->handle), ImVec2(t->width, t->height));
-      if (i % 5 < 4) ImGui::SameLine();
+      ImGui::Image((void*)intptr_t(t->handle),
+                   ImVec2(t->width * 2, t->height * 2));
+      if (i % 4 < 3) ImGui::SameLine();
     }
 
     ImGui::EndGroup();
@@ -236,7 +288,7 @@ int main(int argc, char** argv) {
   }
 
   fhd_texture_destroy(&depth_texture);
-  fhd_classifier_destroy(&classifier);
+  fhd_classifier_destroy(detector.classifier);
   ImGui_ImplGlfwGL3_Shutdown();
   glfwTerminate();
 

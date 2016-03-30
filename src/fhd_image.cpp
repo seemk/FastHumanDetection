@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <x86intrin.h>
-#include <stdio.h>
 
 void fhd_image_init(fhd_image* img, int w, int h) {
   img->width = w;

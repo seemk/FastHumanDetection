@@ -615,6 +615,8 @@ void fhd_context_init(fhd_context* fhd, int source_w, int source_h, int cell_w,
   uint64_t rng_initseq = rng_seed >> 32;
   printf("seed: %lu seq: %lu\n", rng_seed, rng_initseq);
   pcg32_srandom_r(&fhd->rng, rng_seed, rng_initseq);
+
+  fhd->classifier = NULL;
 }
 
 void fhd_copy_depth(fhd_context* fhd, const uint16_t* source) {

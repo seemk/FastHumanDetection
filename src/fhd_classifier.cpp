@@ -2,8 +2,19 @@
 #include "fhd_candidate.h"
 #include <fann.h>
 
-void fhd_classifier_init(fhd_classifier* classifier, const char* nn_file) {
-  classifier->nn = fann_create_from_file(nn_file);
+struct fhd_classifier {
+  fann* nn;
+};
+
+fhd_classifier* fhd_classifier_create(const char* nn_file) {
+  fann* nn = fann_create_from_file(nn_file);
+  if (nn) {
+    fhd_classifier* classifier = (fhd_classifier*)calloc(1, sizeof(fhd_classifier));
+    classifier->nn = nn;
+    return classifier;
+  }
+
+  return NULL;
 }
 
 float fhd_classify(fhd_classifier* classifier, const fhd_candidate* candidate) {
@@ -12,7 +23,8 @@ float fhd_classify(fhd_classifier* classifier, const fhd_candidate* candidate) {
 }
 
 void fhd_classifier_destroy(fhd_classifier* classifier) {
-  if (classifier->nn) {
+  if (classifier) {
     fann_destroy(classifier->nn);
+    free(classifier);
   }
 }
