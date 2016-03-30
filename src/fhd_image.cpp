@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <x86intrin.h>
+#include <stdio.h>
 
 void fhd_image_init(fhd_image* img, int w, int h) {
   img->width = w;
@@ -53,8 +54,9 @@ void fhd_copy_sub_image_scale(const fhd_image* src,
 
 void fhd_copy_sub_image(const fhd_image* src, const fhd_image_region* src_reg,
                         fhd_image* dst, const fhd_image_region* dst_reg) {
-  for (int y = 0; y < src_reg->height; y++) {
-    for (int x = 0; x < src_reg->width; x++) {
+  assert(dst_reg->width <= src_reg->width && dst_reg->height <= src_reg->height);
+  for (int y = 0; y < dst_reg->height; y++) {
+    for (int x = 0; x < dst_reg->width; x++) {
       int src_index = (src_reg->y + y) * src->width + (src_reg->x + x);
       int dst_offset = (dst_reg->y + y) * dst->width + (dst_reg->x + x);
       dst->data[dst_offset] = src->data[src_index];
