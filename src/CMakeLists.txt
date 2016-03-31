@@ -40,6 +40,11 @@ add_executable(
   tools/ui.cpp
 )
 
+add_executable(
+  fhd_train
+  tools/fhd_train.cpp
+)
+
 target_link_libraries(
   fhd_ui
   fhd
@@ -49,4 +54,12 @@ target_link_libraries(
   glew
   floatfann
   ${GLFW_LIBRARIES}
+)
+
+target_link_libraries(
+  fhd_train
+  fhd
+  floatfann
+  sqlite
+  ${CMAKE_DL_LIBS}
 )
