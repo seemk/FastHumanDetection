@@ -11,20 +11,13 @@
 #include "../fhd_kinect.h"
 #include "../fhd.h"
 #include "../fhd_segmentation.h"
+#include "../fhd_candidate_db.h"
 #include "fhd_texture.h"
 #include "fhd_filebrowser.h"
 #include <stdlib.h>
 #include <memory>
 #include <cstring>
 #include <cmath>
-
-template <typename T>
-struct fhd_tvec {
-  int len;
-  T* data;
-};
-
-typedef fhd_tvec<uint8_t> fhd_tvec_u8;
 
 struct fhd_color {
   uint8_t r;
@@ -81,14 +74,18 @@ struct fhd_ui {
   bool update_enabled = true;
   bool show_candidates = false;
   bool show_file_selection = false;
+  bool train_mode = false;
+  const uint16_t* depth_frame = NULL;
   float detection_threshold = 1.f;
   int filebrowser_selected_index = -1;
   std::vector<fhd_texture> textures;
   std::vector<fhd_color> colors;
+  std::vector<bool> selected_candidates;
   std::string database_name = "none";
   std::string classifier_name = "none";
 
   fhd_image* candidate_images;
+  fhd_candidate_db candidate_db;
 };
 
 fhd_ui::fhd_ui(fhd_context* fhd)
@@ -100,7 +97,8 @@ fhd_ui::fhd_ui(fhd_context* fhd)
       normals_seg_texture(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       downscaled_depth(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       depth_segmentation(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
-      filtered_regions(fhd_create_texture(fhd->cells_x, fhd->cells_y)) {
+      filtered_regions(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
+      selected_candidates(fhd->candidates_capacity, false) {
   candidate_images =
       (fhd_image*)calloc(fhd->candidates_capacity, sizeof(fhd_image));
   for (int i = 0; i < fhd->candidates_capacity; i++) {
@@ -287,6 +285,30 @@ void render_classifier_selection(fhd_ui* ui) {
   }
 }
 
+void fhd_candidate_selection_grid(fhd_ui* ui, int btn_width, int btn_height) {
+  for (int i = 0; i < ui->fhd->candidates_len; i++) {
+    fhd_texture* texture = &ui->textures[i];
+    bool selected = ui->selected_candidates[i];
+
+    void* handle = (void*)intptr_t(texture->handle);
+    if (selected) {
+      if (ImGui::ImageButton(handle, ImVec2(btn_width, btn_height), ImVec2(0, 0),
+                             ImVec2(1, 1), 4, ImVec4(1.f, 1.f, 1.f, 1.f),
+                             ImVec4(0.f, 1.f, 0.f, 1.f))) {
+        ui->selected_candidates[i] = false;
+      }
+    } else {
+      if (ImGui::ImageButton(handle, ImVec2(btn_width, btn_height), ImVec2(0, 0),
+                             ImVec2(1, 1), 2)) {
+        ui->selected_candidates[i] = true;
+      }
+    }
+
+    if (i % 7 < 6) ImGui::SameLine();
+  }
+}
+
+
 void glfwError(int error, const char* description) {
   fprintf(stderr, "GLFW error: %i: %s\n", error, description);
 }
@@ -318,18 +340,29 @@ int main(int argc, char** argv) {
 
   fhd_ui ui(&detector);
 
+  if (argc > 1) {
+    const char* train_database = argv[1];
+    ui.train_mode = true;
+    fhd_candidate_db_init(&ui.candidate_db, train_database);
+  }
+
   ImVec4 clear_color = ImColor(218, 223, 225);
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    const uint16_t* depth_data = NULL;
-    if (ui.update_enabled) {
-      depth_data = ui.frame_source->get_frame();
+    if (ui.train_mode) {
+      if (ImGui::IsKeyPressed(GLFW_KEY_X)) {
+        ui.depth_frame = ui.frame_source->get_frame();
+      }
+    } else {
+      if (ui.update_enabled) {
+        ui.depth_frame = ui.frame_source->get_frame();
+      }
     }
 
-    if (depth_data) {
-      fhd_run_pass(&detector, depth_data);
-      fhd_ui_update(&ui, depth_data);
+    if (ui.depth_frame) {
+      fhd_run_pass(&detector, ui.depth_frame);
+      fhd_ui_update(&ui, ui.depth_frame);
     }
 
     ImGui_ImplGlfwGL3_NewFrame();
@@ -348,6 +381,10 @@ int main(int argc, char** argv) {
     ImGui::BeginChild("toolbar", ImVec2(300.f, float(display_h)));
     render_db_selection(&ui);
     render_classifier_selection(&ui);
+
+    if (ui.train_mode) {
+      ImGui::Text("*** TRAINING DB: %s ***", argv[1]);
+    }
 
     ImGui::Text("frame source: %s; frame %d/%d", ui.database_name.c_str(),
                 ui.frame_source->current_frame(),
@@ -379,13 +416,6 @@ int main(int argc, char** argv) {
                      200, "min depth seg size");
     ImGui::SliderInt("##min_normal_seg_size", &ui.fhd->min_normal_segment_size, 4,
                      200, "min normal seg size");
-    /*
-    ImGui::SliderInt("min depth seg size", &dbg->hod->min_depth_segment_size, 4,
-                     200);
-    ImGui::SliderInt("min normal seg size", &dbg->hod->min_normal_segment_size,
-    4,
-                   200);
-                   */
     ImGui::EndChild();
 
     ImGui::SameLine();
@@ -433,11 +463,15 @@ int main(int argc, char** argv) {
 
     ImGui::BeginGroup();
 
-    for (int i = 0; i < detector.candidates_len; i++) {
-      fhd_texture* t = &ui.textures[i];
-      ImGui::Image((void*)intptr_t(t->handle),
-                   ImVec2(t->width * 2, t->height * 2));
-      if (i % 4 < 3) ImGui::SameLine();
+    if (ui.train_mode) {
+      fhd_candidate_selection_grid(&ui, FHD_HOG_WIDTH * 2, FHD_HOG_HEIGHT * 2);
+    } else {
+      for (int i = 0; i < detector.candidates_len; i++) {
+        fhd_texture* t = &ui.textures[i];
+        ImGui::Image((void*)intptr_t(t->handle),
+                     ImVec2(t->width * 2, t->height * 2));
+        if (i % 7 < 6) ImGui::SameLine();
+      }
     }
 
     ImGui::EndGroup();
@@ -449,6 +483,10 @@ int main(int argc, char** argv) {
 
     ImGui::Render();
     glfwSwapBuffers(window);
+  }
+
+  if (ui.train_mode) {
+    fhd_candidate_db_close(&ui.candidate_db);
   }
 
   fhd_texture_destroy(&ui.depth_texture);
