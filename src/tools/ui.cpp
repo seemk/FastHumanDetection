@@ -8,12 +8,15 @@
 #include "../fhd_sqlite_source.h"
 #include "../fhd_classifier.h"
 #include "../fhd_image.h"
+#include "../fhd_kinect.h"
 #include "../fhd.h"
 #include "../fhd_segmentation.h"
 #include "fhd_texture.h"
 #include "fhd_filebrowser.h"
 #include <stdlib.h>
 #include <memory>
+#include <cstring>
+#include <cmath>
 
 template <typename T>
 struct fhd_tvec {
@@ -73,9 +76,12 @@ struct fhd_ui {
   fhd_texture normals_seg_texture;
   fhd_texture downscaled_depth;
   fhd_texture depth_segmentation;
+  fhd_texture filtered_regions;
 
+  bool update_enabled = true;
   bool show_candidates = false;
   bool show_file_selection = false;
+  float detection_threshold = 1.f;
   int filebrowser_selected_index = -1;
   std::vector<fhd_texture> textures;
   std::vector<fhd_color> colors;
@@ -93,7 +99,8 @@ fhd_ui::fhd_ui(fhd_context* fhd)
       normals_texture(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       normals_seg_texture(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       downscaled_depth(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
-      depth_segmentation(fhd_create_texture(fhd->cells_x, fhd->cells_y)) {
+      depth_segmentation(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
+      filtered_regions(fhd_create_texture(fhd->cells_x, fhd->cells_y)) {
   candidate_images =
       (fhd_image*)calloc(fhd->candidates_capacity, sizeof(fhd_image));
   for (int i = 0; i < fhd->candidates_capacity; i++) {
@@ -169,6 +176,23 @@ void fhd_ui_update(fhd_ui* ui, const uint16_t* depth) {
     ui->depth_segmentation.data[4 * i + 3] = 255;
   }
 
+  std::memset(ui->filtered_regions.data, 0, ui->filtered_regions.bytes);
+  for (int i = 0; i < fhd->filtered_regions_len; i++) {
+    fhd_region* r = &fhd->filtered_regions[i];
+    fhd_color c = ui->colors[i];
+    for (int j = 0; j < r->points_len; j++) {
+      fhd_vec3 p = r->points[j].p_r;
+      const fhd_vec2 sc = fhd_kinect_coord_to_depth(p);
+      const int sx = int(std::round(sc.x / fhd->cell_wf));
+      const int sy = int(std::round(sc.y / fhd->cell_hf));
+      int idx = sy * fhd->cells_x + sx;
+      ui->filtered_regions.data[4 * idx] = c.r;
+      ui->filtered_regions.data[4 * idx + 1] = c.g;
+      ui->filtered_regions.data[4 * idx + 2] = c.b;
+      ui->filtered_regions.data[4 * idx + 3] = 255;
+    }
+  }
+
   update_depth_texture(ui->downscaled_depth.data, fhd->downscaled_depth,
                        fhd->cells_len);
 
@@ -176,6 +200,7 @@ void fhd_ui_update(fhd_ui* ui, const uint16_t* depth) {
   fhd_texture_upload(&ui->normals_seg_texture);
   fhd_texture_upload(&ui->downscaled_depth);
   fhd_texture_upload(&ui->depth_segmentation);
+  fhd_texture_upload(&ui->filtered_regions);
 
   fhd_ui_update_candidates(ui, ui->fhd->candidates, ui->fhd->candidates_len);
 }
@@ -297,7 +322,10 @@ int main(int argc, char** argv) {
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    const uint16_t* depth_data = ui.frame_source->get_frame();
+    const uint16_t* depth_data = NULL;
+    if (ui.update_enabled) {
+      depth_data = ui.frame_source->get_frame();
+    }
 
     if (depth_data) {
       fhd_run_pass(&detector, depth_data);
@@ -317,17 +345,48 @@ int main(int argc, char** argv) {
     ImGui::Begin("foo", &show_window,
                  ImVec2(float(display_w), float(display_h)), -1.f, flags);
 
-    ImGui::BeginGroup();
-
+    ImGui::BeginChild("toolbar", ImVec2(300.f, float(display_h)));
     render_db_selection(&ui);
     render_classifier_selection(&ui);
 
     ImGui::Text("frame source: %s; frame %d/%d", ui.database_name.c_str(),
                 ui.frame_source->current_frame(),
                 ui.frame_source->total_frames());
-    ImGui::Text("classifier: %s", ui.classifier_name.c_str());
-
-    ImGui::EndGroup();
+    ImGui::Checkbox("update enabled", &ui.update_enabled);
+    ImGui::SliderFloat("##det_thresh", &ui.detection_threshold, 0.f, 1.f,
+                       "detection threshold %.3f");
+    ImGui::InputFloat("seg k depth", &ui.fhd->depth_segmentation_threshold);
+    ImGui::InputFloat("seg k normals", &ui.fhd->normal_segmentation_threshold);
+    ImGui::SliderFloat("##min_reg_dim", &ui.fhd->min_region_size, 8.f, 100.f,
+                       "min region dimension %.1f");
+    ImGui::SliderFloat("##merge_dist_x", &ui.fhd->max_merge_distance, 0.1f, 2.f,
+                       "max h merge dist (m) %.2f");
+    ImGui::SliderFloat("##merge_dist_y", &ui.fhd->max_vertical_merge_distance,
+                       0.1f, 3.f, "max v merge dist (m) %.2f");
+    ImGui::SliderFloat("##min_inlier",
+                       &ui.fhd->min_inlier_fraction, 0.5f, 1.f, "RANSAC min inlier ratio %.2f");
+    ImGui::SliderFloat("##max_plane_dist",
+                       &ui.fhd->ransac_max_plane_distance, 0.01f, 1.f, "RANSAC max plane dist %.2f");
+    ImGui::SliderFloat("##reg_height_min", &ui.fhd->min_region_height, 0.1f,
+                       3.f, "min region height (m) %.2f");
+    ImGui::SliderFloat("##reg_height_max", &ui.fhd->max_region_height, 0.1f,
+                       3.f, "max region height (m) %.2f");
+    ImGui::SliderFloat("##reg_width_min", &ui.fhd->min_region_width, 0.1f,
+                       1.f, "min region width (m) %.2f");
+    ImGui::SliderFloat("##reg_width_max", &ui.fhd->max_region_height, 0.1f,
+                       1.5f, "max region width (m) %.2f");
+    ImGui::SliderInt("##min_depth_seg_size", &ui.fhd->min_depth_segment_size, 4,
+                     200, "min depth seg size");
+    ImGui::SliderInt("##min_normal_seg_size", &ui.fhd->min_normal_segment_size, 4,
+                     200, "min normal seg size");
+    /*
+    ImGui::SliderInt("min depth seg size", &dbg->hod->min_depth_segment_size, 4,
+                     200);
+    ImGui::SliderInt("min normal seg size", &dbg->hod->min_normal_segment_size,
+    4,
+                   200);
+                   */
+    ImGui::EndChild();
 
     ImGui::SameLine();
 
@@ -365,6 +424,8 @@ int main(int argc, char** argv) {
     ImGui::Image((void*)intptr_t(ui.depth_segmentation.handle),
                  ImVec2(256, 212));
     ImGui::EndGroup();
+
+    ImGui::Image((void*)intptr_t(ui.filtered_regions.handle), ImVec2(256, 212));
 
     ImGui::EndGroup();
 

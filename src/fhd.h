@@ -59,7 +59,6 @@ struct fhd_context {
   float min_region_width;
   float max_region_width;
   float ransac_max_plane_distance;
-  int ransac_steps;
   int min_depth_segment_size;
   int min_normal_segment_size;
   float depth_segmentation_threshold;

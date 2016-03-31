@@ -258,10 +258,12 @@ void fhd_construct_regions(fhd_context* fhd) {
 }
 
 float region_inlier_fraction(pcg32_random_t* rng, const fhd_region* r,
-                             float max_plane_distance, int steps) {
+                             float max_plane_distance) {
   float inlier_fraction = 0.f;
   const uint32_t n_points = uint32_t(r->points_len);
   const float total = float(n_points);
+
+  const int steps = 20;
   for (int k = 0; k < steps; k++) {
     // pick 3 random points
     uint32_t a_i, b_i, c_i;
@@ -321,7 +323,7 @@ void fhd_merge_regions(fhd_context* fhd) {
         const bool is_small = width < min_width || height < min_height;
 #if FHD_PLANAR_REGIONS
         const float fraction = region_inlier_fraction(
-            &fhd->rng, r, fhd->ransac_max_plane_distance, fhd->ransac_steps);
+            &fhd->rng, r, fhd->ransac_max_plane_distance);
         if (is_small && fraction >= fhd->min_inlier_fraction) {
 #else
         if (is_small) {
@@ -537,7 +539,6 @@ void fhd_context_init(fhd_context* fhd, int source_w, int source_h, int cell_w,
   fhd->min_region_width = 0.3f;
   fhd->max_region_width = 1.f;
   fhd->ransac_max_plane_distance = 0.05f;
-  fhd->ransac_steps = 20;
   fhd->min_depth_segment_size = 4;
   fhd->min_normal_segment_size = 10;
   fhd->depth_segmentation_threshold = 2.f;
