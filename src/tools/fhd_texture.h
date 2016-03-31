@@ -16,4 +16,4 @@ struct fhd_texture {
 fhd_texture fhd_create_texture(int width, int height);
 void fhd_texture_destroy(fhd_texture* texture);
 void fhd_texture_update(fhd_texture* texture, const uint8_t* data);
-
+void fhd_texture_upload(fhd_texture* texture);

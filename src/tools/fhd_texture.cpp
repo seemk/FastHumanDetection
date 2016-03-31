@@ -27,3 +27,9 @@ void fhd_texture_update(fhd_texture* texture, const uint8_t* data) {
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture->width, texture->height,
                   GL_RGBA, GL_UNSIGNED_BYTE, data);
 }
+
+void fhd_texture_upload(fhd_texture* texture) {
+  glBindTexture(GL_TEXTURE_2D, texture->handle);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture->width, texture->height,
+                  GL_RGBA, GL_UNSIGNED_BYTE, texture->data);
+}
