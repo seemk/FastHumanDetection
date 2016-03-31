@@ -45,6 +45,11 @@ add_executable(
   tools/fhd_train.cpp
 )
 
+add_executable(
+  fhd_test
+  tools/fhd_test.cpp
+)
+
 target_link_libraries(
   fhd_ui
   fhd
@@ -58,6 +63,14 @@ target_link_libraries(
 
 target_link_libraries(
   fhd_train
+  fhd
+  floatfann
+  sqlite
+  ${CMAKE_DL_LIBS}
+)
+
+target_link_libraries(
+  fhd_test
   fhd
   floatfann
   sqlite
