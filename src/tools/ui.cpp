@@ -18,6 +18,7 @@
 #include <memory>
 #include <cstring>
 #include <cmath>
+#include <chrono>
 
 struct fhd_color {
   uint8_t r;
@@ -71,6 +72,7 @@ struct fhd_ui {
   fhd_texture depth_segmentation;
   fhd_texture filtered_regions;
 
+  double detection_pass_time_ms = 0.0;
   bool update_enabled = true;
   bool show_candidates = false;
   bool show_file_selection = false;
@@ -292,14 +294,14 @@ void fhd_candidate_selection_grid(fhd_ui* ui, int btn_width, int btn_height) {
 
     void* handle = (void*)intptr_t(texture->handle);
     if (selected) {
-      if (ImGui::ImageButton(handle, ImVec2(btn_width, btn_height), ImVec2(0, 0),
-                             ImVec2(1, 1), 4, ImVec4(1.f, 1.f, 1.f, 1.f),
-                             ImVec4(0.f, 1.f, 0.f, 1.f))) {
+      if (ImGui::ImageButton(
+              handle, ImVec2(btn_width, btn_height), ImVec2(0, 0), ImVec2(1, 1),
+              4, ImVec4(1.f, 1.f, 1.f, 1.f), ImVec4(0.f, 1.f, 0.f, 1.f))) {
         ui->selected_candidates[i] = false;
       }
     } else {
-      if (ImGui::ImageButton(handle, ImVec2(btn_width, btn_height), ImVec2(0, 0),
-                             ImVec2(1, 1), 2)) {
+      if (ImGui::ImageButton(handle, ImVec2(btn_width, btn_height),
+                             ImVec2(0, 0), ImVec2(1, 1), 2)) {
         ui->selected_candidates[i] = true;
       }
     }
@@ -307,7 +309,6 @@ void fhd_candidate_selection_grid(fhd_ui* ui, int btn_width, int btn_height) {
     if (i % 7 < 6) ImGui::SameLine();
   }
 }
-
 
 void glfwError(int error, const char* description) {
   fprintf(stderr, "GLFW error: %i: %s\n", error, description);
@@ -361,7 +362,11 @@ int main(int argc, char** argv) {
     }
 
     if (ui.depth_frame) {
+      auto t1 = std::chrono::high_resolution_clock::now();
       fhd_run_pass(&detector, ui.depth_frame);
+      auto t2 = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+      ui.detection_pass_time_ms = double(duration.count()) / 1000.0;
       fhd_ui_update(&ui, ui.depth_frame);
     }
 
@@ -386,6 +391,7 @@ int main(int argc, char** argv) {
       ImGui::Text("*** TRAINING DB: %s ***", argv[1]);
     }
 
+    ImGui::Text("detection pass time %.3f ms", ui.detection_pass_time_ms);
     ImGui::Text("frame source: %s; frame %d/%d", ui.database_name.c_str(),
                 ui.frame_source->current_frame(),
                 ui.frame_source->total_frames());
@@ -400,22 +406,22 @@ int main(int argc, char** argv) {
                        "max h merge dist (m) %.2f");
     ImGui::SliderFloat("##merge_dist_y", &ui.fhd->max_vertical_merge_distance,
                        0.1f, 3.f, "max v merge dist (m) %.2f");
-    ImGui::SliderFloat("##min_inlier",
-                       &ui.fhd->min_inlier_fraction, 0.5f, 1.f, "RANSAC min inlier ratio %.2f");
-    ImGui::SliderFloat("##max_plane_dist",
-                       &ui.fhd->ransac_max_plane_distance, 0.01f, 1.f, "RANSAC max plane dist %.2f");
+    ImGui::SliderFloat("##min_inlier", &ui.fhd->min_inlier_fraction, 0.5f, 1.f,
+                       "RANSAC min inlier ratio %.2f");
+    ImGui::SliderFloat("##max_plane_dist", &ui.fhd->ransac_max_plane_distance,
+                       0.01f, 1.f, "RANSAC max plane dist %.2f");
     ImGui::SliderFloat("##reg_height_min", &ui.fhd->min_region_height, 0.1f,
                        3.f, "min region height (m) %.2f");
     ImGui::SliderFloat("##reg_height_max", &ui.fhd->max_region_height, 0.1f,
                        3.f, "max region height (m) %.2f");
-    ImGui::SliderFloat("##reg_width_min", &ui.fhd->min_region_width, 0.1f,
-                       1.f, "min region width (m) %.2f");
+    ImGui::SliderFloat("##reg_width_min", &ui.fhd->min_region_width, 0.1f, 1.f,
+                       "min region width (m) %.2f");
     ImGui::SliderFloat("##reg_width_max", &ui.fhd->max_region_height, 0.1f,
                        1.5f, "max region width (m) %.2f");
     ImGui::SliderInt("##min_depth_seg_size", &ui.fhd->min_depth_segment_size, 4,
                      200, "min depth seg size");
-    ImGui::SliderInt("##min_normal_seg_size", &ui.fhd->min_normal_segment_size, 4,
-                     200, "min normal seg size");
+    ImGui::SliderInt("##min_normal_seg_size", &ui.fhd->min_normal_segment_size,
+                     4, 200, "min normal seg size");
     ImGui::EndChild();
 
     ImGui::SameLine();
