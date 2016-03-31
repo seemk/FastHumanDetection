@@ -117,6 +117,20 @@ fhd_ui::fhd_ui(fhd_context* fhd)
   }
 }
 
+void fhd_ui_clear_candidate_selection(fhd_ui* ui) {
+  for (size_t i = 0; i < ui->selected_candidates.size(); i++) {
+    ui->selected_candidates[i] = false;
+  }
+}
+
+void fhd_ui_commit_candidates(fhd_ui* ui) {
+  for (int i = 0; i < ui->fhd->candidates_len; i++) {
+    bool human = ui->selected_candidates[i];
+    fhd_candidate* candidate = &ui->fhd->candidates[i];
+    fhd_candidate_db_add_candidate(&ui->candidate_db, candidate, human);
+  }
+}
+
 void fhd_ui_update_candidates(fhd_ui* ui, const fhd_candidate* candidates,
                               int len) {
   for (int i = 0; i < len; i++) {
@@ -353,7 +367,12 @@ int main(int argc, char** argv) {
 
     if (ui.train_mode) {
       if (ImGui::IsKeyPressed(GLFW_KEY_X)) {
+        fhd_ui_clear_candidate_selection(&ui);
         ui.depth_frame = ui.frame_source->get_frame();
+      }
+
+      if (ImGui::IsKeyPressed(GLFW_KEY_SPACE)) {
+        fhd_ui_commit_candidates(&ui);
       }
     } else {
       if (ui.update_enabled) {
