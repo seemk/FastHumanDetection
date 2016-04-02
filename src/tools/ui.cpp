@@ -422,6 +422,7 @@ int main(int argc, char** argv) {
     ImGui::Text("frame source: %s; frame %d/%d", ui.database_name.c_str(),
                 ui.frame_source->current_frame(),
                 ui.frame_source->total_frames());
+    ImGui::Text("classifier: %s", ui.classifier_name.c_str());
     ImGui::Checkbox("update enabled", &ui.update_enabled);
     ImGui::SliderFloat("##det_thresh", &ui.detection_threshold, 0.f, 1.f,
                        "detection threshold %.3f");
