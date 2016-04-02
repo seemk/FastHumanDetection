@@ -32,12 +32,20 @@ add_library(fhd
   pcg/pcg_basic.c
 )
 
-add_executable(
-  fhd_ui
+set (UI_SOURCES
   tools/fhd_debug_frame_source.cpp
   tools/fhd_filebrowser.cpp
   tools/fhd_texture.cpp
   tools/ui.cpp
+)
+
+if (KINECT_ENABLED)
+  list(APPEND UI_SOURCES tools/fhd_kinect_source.cpp)
+endif()
+
+add_executable(
+  fhd_ui
+  ${UI_SOURCES}
 )
 
 add_executable(

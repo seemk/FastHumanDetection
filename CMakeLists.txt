@@ -10,6 +10,8 @@ add_subdirectory("third_party/glfw-3.1.2")
 add_subdirectory("third_party/fann")
 add_subdirectory("third_party/glew-1.13.0/build/cmake")
 
+option(KINECT_ENABLED "Use KinectV2 SDK" OFF)
+
 set (CMAKE_CXX_STANDARD 11)
 if (WIN32)
   add_definitions(
@@ -17,6 +19,13 @@ if (WIN32)
     -D_SCL_SECURE_NO_WARNINGS
     -D_CRT_SECURE_NO_WARNINGS
   )
+
+  if (KINECT_ENABLED)
+    find_package(KinectV2 REQUIRED)
+    add_definitions(
+      -DFHD_KINECT_ENABLED=1
+    )
+  endif()
 else()
   add_definitions(-Wall -Wextra -march=native)
 endif()

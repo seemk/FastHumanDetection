@@ -20,6 +20,10 @@
 #include <cmath>
 #include <chrono>
 
+#if FHD_KINECT_ENABLED
+#include "fhd_kinect_source.h"
+#endif
+
 struct fhd_color {
   uint8_t r;
   uint8_t g;
@@ -86,23 +90,27 @@ struct fhd_ui {
   std::string database_name = "none";
   std::string classifier_name = "none";
 
-  fhd_image* candidate_images;
+  std::vector<fhd_image> candidate_images;
   fhd_candidate_db candidate_db;
 };
 
 fhd_ui::fhd_ui(fhd_context* fhd)
     : fhd(fhd),
       file_browser("."),
-      frame_source(new fhd_debug_frame_source()),
       depth_texture(fhd_create_texture(512, 424)),
       normals_texture(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       normals_seg_texture(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       downscaled_depth(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       depth_segmentation(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       filtered_regions(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
-      selected_candidates(fhd->candidates_capacity, false) {
-  candidate_images =
-      (fhd_image*)calloc(fhd->candidates_capacity, sizeof(fhd_image));
+      selected_candidates(fhd->candidates_capacity, false),
+      candidate_images(fhd->candidates_capacity) {
+#if FHD_KINECT_ENABLED
+  frame_source.reset(new fhd_kinect_source());
+#else
+  frame_source.reset(new fhd_debug_frame_source());
+#endif
+
   for (int i = 0; i < fhd->candidates_capacity; i++) {
     fhd_texture t = fhd_create_texture(FHD_HOG_WIDTH, FHD_HOG_HEIGHT);
     textures.push_back(t);
