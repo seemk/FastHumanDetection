@@ -267,6 +267,7 @@ void render_db_selection(fhd_ui* ui) {
       if (selected_file) {
         ui->frame_source.reset(
             new fhd_sqlite_source(selected_file->path.c_str()));
+        ui->frame_source->advance();
         ui->database_name = selected_file->name;
         ui->filebrowser_selected_index = -1;
       }
@@ -392,7 +393,8 @@ int main(int argc, char** argv) {
       auto t1 = std::chrono::high_resolution_clock::now();
       fhd_run_pass(&detector, ui.depth_frame);
       auto t2 = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+      auto duration =
+          std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
       ui.detection_pass_time_ms = double(duration.count()) / 1000.0;
       fhd_ui_update(&ui, ui.depth_frame);
     }
@@ -419,8 +421,8 @@ int main(int argc, char** argv) {
     }
 
     ImGui::Text("detection pass time %.3f ms", ui.detection_pass_time_ms);
-    ImGui::Text("frame source: %s; frame %d/%d", ui.database_name.c_str(),
-                ui.frame_source->current_frame(),
+    ImGui::Text("frame source: %s", ui.database_name.c_str());
+    ImGui::Text("frame %d/%d", ui.frame_source->current_frame(),
                 ui.frame_source->total_frames());
     ImGui::Text("classifier: %s", ui.classifier_name.c_str());
     ImGui::Checkbox("update enabled", &ui.update_enabled);
