@@ -19,10 +19,10 @@
 [Rr]eleases/
 x64/
 x86/
-build/
 bld/
 [Bb]in/
 [Oo]bj/
+fhd_build/
 
 # Visual Studio 2015 cache/options directory
 .vs/
