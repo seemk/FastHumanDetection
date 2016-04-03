@@ -18,7 +18,6 @@ add_library(fhd
   fhd.cpp
   fhd_block_allocator.cpp
   fhd_candidate.cpp
-  fhd_candidate_db.cpp
   fhd_classifier.cpp
   fhd_hash.cpp
   fhd_image.cpp
@@ -27,9 +26,13 @@ add_library(fhd
   fhd_perf.cpp
   fhd_sampler.cpp
   fhd_segmentation.cpp
-  fhd_sqlite_source.cpp
 
   pcg/pcg_basic.c
+)
+
+add_library(fhd_util
+  fhd_candidate_db.cpp
+  fhd_sqlite_source.cpp
 )
 
 set (UI_SOURCES
@@ -60,6 +63,7 @@ add_executable(
 
 target_link_libraries(
   fhd_ui
+  fhd_util
   fhd
   sqlite
   imgui
@@ -71,6 +75,7 @@ target_link_libraries(
 
 target_link_libraries(
   fhd_train
+  fhd_util
   fhd
   floatfann
   sqlite
@@ -79,6 +84,7 @@ target_link_libraries(
 
 target_link_libraries(
   fhd_test
+  fhd_util
   fhd
   floatfann
   sqlite
