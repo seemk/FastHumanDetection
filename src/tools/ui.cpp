@@ -466,6 +466,8 @@ int main(int argc, char** argv) {
     ImVec2 p = ImGui::GetCursorScreenPos();
     ImGui::Image((void*)intptr_t(ui.depth_texture.handle), ImVec2(512, 424));
 
+
+    ImU32 rect_color = ImColor(240, 240, 20);
     for (int i = 0; i < detector.candidates_len; i++) {
       const fhd_candidate* candidate = &detector.candidates[i];
       if (candidate->weight >= 1.f) {
@@ -475,8 +477,13 @@ int main(int argc, char** argv) {
         const float y = p.y + float(region.y);
         const float w = float(region.width);
         const float h = float(region.height);
-        draw_list->AddRect(ImVec2(x, y), ImVec2(x + w, y + h),
-                           IM_COL32(255, 255, 255, 255));
+        ImVec2 points[4] = {
+          ImVec2(x, y),
+          ImVec2(x + w, y),
+          ImVec2(x + w, y + h),
+          ImVec2(x, y + h)
+        };
+        draw_list->AddPolyline(points, 4, rect_color, true, 4.f, true);
       }
     }
 
