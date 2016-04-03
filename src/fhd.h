@@ -102,5 +102,6 @@ struct fhd_context {
   uint16_t* cell_sample_buffer;
 };
 
-void fhd_context_init(fhd_context* hod, int source_w, int source_h, int cell_w, int cell_h);
-void fhd_run_pass(fhd_context* hod, const uint16_t* source);
+void fhd_context_init(fhd_context* fhd, int source_w, int source_h, int cell_w, int cell_h);
+void fhd_run_pass(fhd_context* fhd, const uint16_t* source);
+void fhd_context_destroy(fhd_context* fhd);

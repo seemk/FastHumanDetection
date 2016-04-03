@@ -662,3 +662,31 @@ void fhd_run_pass(fhd_context* fhd, const uint16_t* source) {
     }
   }
 }
+
+void fhd_context_destroy(fhd_context* fhd) {
+  fhd_block_allocator_destroy(fhd->point_allocator);
+  fhd_image_destroy(&fhd->normalized_source);
+  fhd_image_destroy(&fhd->output_depth);
+
+  free(fhd->downscaled_depth);
+  free(fhd->point_cloud);
+  free(fhd->normals);
+  free(fhd->depth_graph);
+  free(fhd->normals_graph);
+  free(fhd->normals_segmentation);
+  free(fhd->depth_segmentation);
+  free(fhd->filtered_regions);
+  free(fhd->output_cell_indices);
+
+  for (int i = 0; i < fhd->candidates_capacity; i++) {
+    fhd_candidate* candidate = &fhd->candidates[i];
+    fhd_image_destroy(&candidate->depth);
+    free(candidate->cells);
+    free(candidate->features);
+  }
+
+  free(fhd->candidates);
+  free(fhd->sampler);
+  free(fhd->cell_sample_buffer);
+  free(fhd->rng);
+}
