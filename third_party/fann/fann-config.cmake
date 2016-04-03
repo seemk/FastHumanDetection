@@ -35,15 +35,15 @@ endmacro()
 ####################################################################################
 
 set ( FANN_FOUND 1 )
-set ( FANN_USE_FILE     "/usr/local/lib/cmake/fann/fann-use.cmake" )
+set ( FANN_USE_FILE     "/home/siim/projects/FastHumanDetection/build/lib/cmake/fann/fann-use.cmake" )
 
 set ( FANN_DEFINITIONS  "" )
-set ( FANN_INCLUDE_DIR  "/usr/local/include" )
-set ( FANN_INCLUDE_DIRS "/usr/local/include" )
+set ( FANN_INCLUDE_DIR  "/home/siim/projects/FastHumanDetection/build/include" )
+set ( FANN_INCLUDE_DIRS "/home/siim/projects/FastHumanDetection/build/include" )
 set ( FANN_LIBRARY      "fann" )
 set ( FANN_LIBRARIES    "fann;m" )
-set ( FANN_LIBRARY_DIRS "/usr/local/lib" )
-set ( FANN_ROOT_DIR     "/usr/local" )
+set ( FANN_LIBRARY_DIRS "/home/siim/projects/FastHumanDetection/build/lib" )
+set ( FANN_ROOT_DIR     "/home/siim/projects/FastHumanDetection/build" )
 
 set ( FANN_VERSION_STRING "2.2.0" )
 set ( FANN_VERSION_MAJOR  "2" )

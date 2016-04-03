@@ -22,10 +22,6 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR}/src/include/)
 
 configure_file (cmake/fann.pc.cmake ${CMAKE_CURRENT_SOURCE_DIR}/fann.pc @ONLY)
 
-########### install files ###############
-
-install (FILES ${CMAKE_CURRENT_SOURCE_DIR}/fann.pc DESTINATION ${PKGCONFIG_INSTALL_DIR})
-
 ADD_SUBDIRECTORY( src ) 
 
 ################# cpack ################
@@ -40,7 +36,6 @@ SET(CPACK_PACKAGE_VERSION_PATCH "${FANN_VERSION_PATCH}")
 SET(CPACK_GENERATOR "TGZ;ZIP")
 SET(CPACK_SOURCE_GENERATOR "TGZ;ZIP")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Steffen Nissen") 
-SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
 IF(WIN32 AND NOT UNIX)
   # There is a bug in NSI that does not handle full unix paths properly. Make
   # sure there is at least one set of four (4) backlasshes.
@@ -73,27 +68,4 @@ endif ()
 
 if (CMAKE_VERSION VERSION_LESS 2.8.8)
   configure_file (cmake/fann-config.cmake.in ${CMAKE_CURRENT_SOURCE_DIR}/fann-config.cmake @ONLY)
-else ()
-
-  include (CMakePackageConfigHelpers)
-
-  configure_package_config_file (
-    cmake/fann-config.cmake.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/fann-config.cmake
-    INSTALL_DESTINATION FANN_CMAKE_CONFIG_DIR
-    PATH_VARS
-     FANN_USE_FILE
-     FANN_ROOT_DIR
-     FANN_INCLUDE_DIR
-     FANN_INCLUDE_DIRS
-     FANN_LIBRARY_DIRS
-   NO_CHECK_REQUIRED_COMPONENTS_MACRO
-  )
-
 endif ()
-
-install (FILES
- ${CMAKE_CURRENT_SOURCE_DIR}/fann-config.cmake
- cmake/fann-use.cmake
- DESTINATION ${CMAKE_CONFIG_DIR}
- )

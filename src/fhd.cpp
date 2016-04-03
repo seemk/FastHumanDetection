@@ -3,6 +3,7 @@
 #include "fhd_classifier.h"
 #include "fhd_segmentation.h"
 #include "fhd_kinect.h"
+#include "pcg/pcg_basic.h"
 #include <assert.h>
 #include <time.h>
 #include <algorithm>
@@ -322,8 +323,8 @@ void fhd_merge_regions(fhd_context* fhd) {
       if (!properly_sized) {
         const bool is_small = width < min_width || height < min_height;
 #if FHD_PLANAR_REGIONS
-        const float fraction = region_inlier_fraction(
-            &fhd->rng, r, fhd->ransac_max_plane_distance);
+        const float fraction =
+            region_inlier_fraction(fhd->rng, r, fhd->ransac_max_plane_distance);
         if (is_small && fraction >= fhd->min_inlier_fraction) {
 #else
         if (is_small) {
@@ -612,10 +613,12 @@ void fhd_context_init(fhd_context* fhd, int source_w, int source_h, int cell_w,
               return a.y < b.y;
             });
 
+  fhd->rng = (pcg32_random_t*)calloc(1, sizeof(pcg32_random_t));
+
   uint64_t rng_seed = uint64_t(time(NULL));
   uint64_t rng_initseq = rng_seed >> 32;
   printf("seed: %lu seq: %lu\n", rng_seed, rng_initseq);
-  pcg32_srandom_r(&fhd->rng, rng_seed, rng_initseq);
+  pcg32_srandom_r(fhd->rng, rng_seed, rng_initseq);
 
   fhd->classifier = NULL;
 }

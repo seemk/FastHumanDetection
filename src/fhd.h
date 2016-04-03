@@ -4,13 +4,13 @@
 #include "fhd_candidate.h"
 #include "fhd_sampler.h"
 #include "fhd_perf.h"
-#include "pcg/pcg_basic.h"
 #include <stdint.h>
 
 struct fhd_block_allocator;
 struct fhd_segmentation;
 struct fhd_classifier;
 struct fhd_edge;
+struct pcg_state_setseq_64;
 
 struct fhd_region_point {
   int x;
@@ -93,7 +93,7 @@ struct fhd_context {
   int candidates_len;
   fhd_candidate* candidates;
 
-  pcg32_random_t rng;
+  pcg_state_setseq_64* rng;
 
   fhd_classifier* classifier;
 

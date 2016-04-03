@@ -12,6 +12,7 @@
 #include "../fhd.h"
 #include "../fhd_segmentation.h"
 #include "../fhd_candidate_db.h"
+#include "../pcg/pcg_basic.h"
 #include "fhd_texture.h"
 #include "fhd_filebrowser.h"
 #include <stdlib.h>

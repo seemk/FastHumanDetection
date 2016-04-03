@@ -69,7 +69,7 @@ target_link_libraries(
   imgui
   glfw
   glew
-  floatfann
+  floatfann_static
   ${GLFW_LIBRARIES}
 )
 
@@ -77,7 +77,7 @@ target_link_libraries(
   fhd_train
   fhd_util
   fhd
-  floatfann
+  floatfann_static
   sqlite
   ${CMAKE_DL_LIBS}
 )
@@ -86,7 +86,21 @@ target_link_libraries(
   fhd_test
   fhd_util
   fhd
-  floatfann
+  floatfann_static
   sqlite
   ${CMAKE_DL_LIBS}
 )
+
+set (FHD_HEADERS
+  fhd.h
+  fhd_candidate.h
+  fhd_config.h
+  fhd_image.h
+  fhd_math.h
+  fhd_perf.h
+  fhd_sampler.h
+)
+
+install(FILES ${FHD_HEADERS} DESTINATION include)
+install(TARGETS fhd EXPORT fhd DESTINATION lib)
+install(TARGETS fhd_ui fhd_train fhd_test RUNTIME DESTINATION bin)
