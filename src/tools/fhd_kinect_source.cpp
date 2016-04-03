@@ -76,7 +76,6 @@ fhd_kinect_source::~fhd_kinect_source() {
 
 const uint16_t* fhd_kinect_source::get_frame() {
   if (read_depth_data(this)) {
-    read_rgb_data(this);
     return depth_buffer.data();
   }
 

@@ -14,7 +14,7 @@ void fhd_filebrowser::set_root(const char* root) {
       tinydir_file f;
       tinydir_readfile_n(&dir, &f, i);
       if (strcmp(f.name, ".") != 0) {
-        files.push_back({f.name, f.path, f.is_dir});
+        files.push_back({f.name, f.path, bool(f.is_dir)});
       }
       tinydir_next(&dir);
     }

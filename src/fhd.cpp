@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <string.h>
 #include <unordered_map>
-#include <x86intrin.h>
+#include <emmintrin.h>
 
 #ifdef FHD_OMP
 #include <omp.h>
@@ -460,8 +460,8 @@ void fhd_copy_regions(fhd_context* fhd) {
     const float sy_n = fabsf(float(FHD_HOG_HEIGHT) * 0.5f / z_tl_y);
 
     fhd_image_region reg;
-    reg.x = tl_x;
-    reg.y = tl_y;
+    reg.x = int(tl_x);
+    reg.y = int(tl_y);
     reg.width = int(width);
     reg.height = int(height);
 
@@ -484,10 +484,10 @@ void fhd_copy_regions(fhd_context* fhd) {
                                &dst_reg);
     } else {
       fhd_image_region dst_reg;
-      dst_reg.x = ((FHD_HOG_WIDTH - width) / 2) + 1;
-      dst_reg.y = ((FHD_HOG_HEIGHT - height) / 2) + 1;
-      dst_reg.width = width;
-      dst_reg.height = height;
+      dst_reg.x = ((FHD_HOG_WIDTH - int(width)) / 2) + 1;
+      dst_reg.y = ((FHD_HOG_HEIGHT - int(height)) / 2) + 1;
+      dst_reg.width = int(width);
+      dst_reg.height = int(height);
       fhd_copy_sub_image(&fhd->output_depth, &reg, &candidate->depth, &dst_reg);
     }
   }

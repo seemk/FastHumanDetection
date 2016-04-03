@@ -14,6 +14,10 @@ if (OPENMP_FOUND)
   add_definitions(-DFHD_OMP)
 endif()
 
+if (WIN32)
+  include_directories(${KINECTV2_INCLUDE_DIR})
+endif()
+
 add_library(fhd
   fhd.cpp
   fhd_block_allocator.cpp
@@ -42,7 +46,7 @@ set (UI_SOURCES
   tools/ui.cpp
 )
 
-if (KINECT_ENABLED)
+if (WIN32)
   list(APPEND UI_SOURCES tools/fhd_kinect_source.cpp)
 endif()
 
@@ -63,13 +67,14 @@ add_executable(
 
 target_link_libraries(
   fhd_ui
+  ${KINECTV2_LIBRARY}
   fhd_util
   fhd
   sqlite
   imgui
   glfw
   glew
-  floatfann_static
+  floatfann
   ${GLFW_LIBRARIES}
 )
 
@@ -77,7 +82,7 @@ target_link_libraries(
   fhd_train
   fhd_util
   fhd
-  floatfann_static
+  floatfann
   sqlite
   ${CMAKE_DL_LIBS}
 )
@@ -86,7 +91,7 @@ target_link_libraries(
   fhd_test
   fhd_util
   fhd
-  floatfann_static
+  floatfann
   sqlite
   ${CMAKE_DL_LIBS}
 )

@@ -11,12 +11,20 @@ Differences from the paper:
 
 Standard CMake build.
 
-Generate the Makefiles or MSVC project files:
+Generate the Makefiles:
 ```
 $ mdkr build
 $ cd build
 $ cmake ..
 ```
+
+Or MSVC project files:
+```
+$ mdkr build
+$ cd build
+$ cmake -G "Visual Studio 12 Win64" -DCMAKE_PREFIX_PATH=KINECT_SDK_DIR ..
+```
+KINECT_SDK_DIR is usually `C:\Program Files\Microsoft SDKs\Kinect\v2.0_1409`
 
 Run `make` or build the MSVC projects.
 

@@ -1,7 +1,7 @@
-prefix=/home/siim/projects/FastHumanDetection/build/instll_path
-exec_prefix=/home/siim/projects/FastHumanDetection/build/instll_path/bin
-libdir=/home/siim/projects/FastHumanDetection/build/instll_path/lib
-includedir=/home/siim/projects/FastHumanDetection/build/instll_path/include
+prefix=C:/Program Files/FastHumanDetection
+exec_prefix=C:/Program Files/FastHumanDetection/bin
+libdir=C:/Program Files/FastHumanDetection/lib
+includedir=C:/Program Files/FastHumanDetection/include
  
 Name: fann
 Description: Fast Artificial Neural Network Library

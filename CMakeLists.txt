@@ -21,12 +21,7 @@ if (WIN32)
     -D_CRT_SECURE_NO_WARNINGS
   )
 
-  if (KINECT_ENABLED)
-    find_package(KinectV2 REQUIRED)
-    add_definitions(
-      -DFHD_KINECT_ENABLED=1
-    )
-  endif()
+  find_package(KinectV2 REQUIRED)
 else()
   add_definitions(-Wall -Wextra -march=native)
 endif()

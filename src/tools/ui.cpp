@@ -21,7 +21,7 @@
 #include <cmath>
 #include <chrono>
 
-#if FHD_KINECT_ENABLED
+#if WIN32
 #include "fhd_kinect_source.h"
 #endif
 
@@ -106,7 +106,7 @@ fhd_ui::fhd_ui(fhd_context* fhd)
       filtered_regions(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       selected_candidates(fhd->candidates_capacity, false),
       candidate_images(fhd->candidates_capacity) {
-#if FHD_KINECT_ENABLED
+#if WIN32
   frame_source.reset(new fhd_kinect_source());
 #else
   frame_source.reset(new fhd_debug_frame_source());
@@ -374,6 +374,8 @@ int main(int argc, char** argv) {
   ImVec4 clear_color = ImColor(218, 223, 225);
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) break;
 
     if (ui.train_mode) {
       if (ImGui::IsKeyPressed(GLFW_KEY_X)) {
