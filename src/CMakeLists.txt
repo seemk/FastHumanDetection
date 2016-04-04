@@ -96,6 +96,20 @@ target_link_libraries(
   ${CMAKE_DL_LIBS}
 )
 
+if (FHD_BUILD_EXAMPLES)
+    add_executable(example_detect
+      examples/example_detect.cpp
+      tools/fhd_debug_frame_source.cpp
+    )
+
+    target_link_libraries(example_detect
+      fhd_util
+      fhd
+      floatfann
+      sqlite
+    )
+endif()
+
 set (FHD_HEADERS
   fhd.h
   fhd_candidate.h

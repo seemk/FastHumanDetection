@@ -12,6 +12,7 @@ add_subdirectory("third_party/glew-1.13.0/build/cmake")
 
 option(KINECT_ENABLED "Use KinectV2 SDK" OFF)
 option(FHD_INSTALL "Generate install target" OFF)
+option(FHD_BUILD_EXAMPLES "Build examples" OFF)
 
 set (CMAKE_CXX_STANDARD 11)
 if (WIN32)
