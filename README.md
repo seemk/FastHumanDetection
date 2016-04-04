@@ -46,4 +46,3 @@ $ ./fhd_train training_out.db classifier.nn
 
 ### TODO
 * Provide pretrained classifier, datasets
-* Kinect SDK based example
