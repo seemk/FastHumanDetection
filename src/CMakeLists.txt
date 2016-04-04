@@ -34,25 +34,25 @@ add_library(fhd
   pcg/pcg_basic.c
 )
 
-add_library(fhd_util
+set(UTIL_SOURCES
   fhd_candidate_db.cpp
   fhd_sqlite_source.cpp
-)
-
-set (UI_SOURCES
   tools/fhd_debug_frame_source.cpp
-  tools/fhd_filebrowser.cpp
-  tools/fhd_texture.cpp
-  tools/ui.cpp
 )
 
 if (WIN32)
-  list(APPEND UI_SOURCES tools/fhd_kinect_source.cpp)
+  list(APPEND UTIL_SOURCES tools/fhd_kinect_source.cpp)
 endif()
+
+add_library(fhd_util
+  ${UTIL_SOURCES}
+)
 
 add_executable(
   fhd_ui
-  ${UI_SOURCES}
+  tools/fhd_filebrowser.cpp
+  tools/fhd_texture.cpp
+  tools/ui.cpp
 )
 
 add_executable(
@@ -99,7 +99,6 @@ target_link_libraries(
 if (FHD_BUILD_EXAMPLES)
     add_executable(example_detect
       examples/example_detect.cpp
-      tools/fhd_debug_frame_source.cpp
     )
 
     target_link_libraries(example_detect
@@ -107,6 +106,7 @@ if (FHD_BUILD_EXAMPLES)
       fhd
       floatfann
       sqlite
+      ${KINECTV2_LIBRARY}
     )
 endif()
 

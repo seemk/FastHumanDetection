@@ -4,6 +4,10 @@
 #include "../tools/fhd_debug_frame_source.h"
 #include <stdio.h>
 
+#if WIN32
+#include "../tools/fhd_kinect_source.h"
+#endif
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     printf("usage: example_detect classifier.nn\n");
@@ -20,8 +24,12 @@ int main(int argc, char** argv) {
   fhd_context_init(&detector, 512, 424, 8, 8);
   detector.classifier = classifier;
 
+#if WIN32
+  fhd_frame_source* source = new fhd_kinect_source();
+#else
   // TODO: Replace with a small DB
   fhd_frame_source* source = new fhd_debug_frame_source();
+#endif
 
   for (int i = 0; i < 10; i++) {
     fhd_run_pass(&detector, source->get_frame());
