@@ -2,6 +2,7 @@
 #include "../fhd_classifier.h"
 #include "../fhd_candidate_db.h"
 #include "../tools/fhd_debug_frame_source.h"
+#include <memory>
 #include <stdio.h>
 
 #if WIN32
@@ -25,10 +26,10 @@ int main(int argc, char** argv) {
   detector.classifier = classifier;
 
 #if WIN32
-  fhd_frame_source* source = new fhd_kinect_source();
+  auto source = std::unique_ptr<fhd_frame_source>(new fhd_kinect_source());
 #else
   // TODO: Replace with a small DB
-  fhd_frame_source* source = new fhd_debug_frame_source();
+  auto source = std::unique_ptr<fhd_frame_source>(new fhd_debug_frame_source());
 #endif
 
   for (int i = 0; i < 10; i++) {
