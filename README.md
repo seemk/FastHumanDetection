@@ -6,6 +6,7 @@ Differences from the paper:
 * Kinect V2 over V1
 * Region planarity checks are disabled by default
 * A neural net is used for classification instead of SVM
+* Stratified sampling is used over random sampling for point cloud construction
 
 ### Building
 
