@@ -32,18 +32,12 @@ Run `make` or build the MSVC projects.
 ### Training a dataset
 
 fhd_ui can be used to create a training set from depth images.
-```
-$ ./fhd_ui training_out.db
-```
+
 "open database" selects a Sqlite DB of depth images. Clicking on a candidate (marking it green) sets it as a positive candidate (human).
 Pressing space commits the candidates to the database, where selected (green) marks a human and unselected candidate marks a negative candidate.
-pressing x advances to the next frame
+X advances to the next frame
 
-After creating the training set, a classifier can be trained with `fhd_train`
-
-```
-$ ./fhd_train training_out.db classifier.nn
-```
+After creating the training set, a classifier can be trained under the Training tab.
 
 ### TODO
 * Provide pretrained classifier, datasets
