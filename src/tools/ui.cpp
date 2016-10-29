@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include "../imgui/imgui.h"
-#include "../imgui/imgui_impl_glfw_gl3.h"
-#include <GL/glew.h>
+#include "../imgui/imgui_impl_glfw.h"
 #include <GLFW/glfw3.h>
 #include "fhd_debug_frame_source.h"
 #include "../fhd_math.h"
@@ -343,23 +342,17 @@ int main(int argc, char** argv) {
 
   if (!glfwInit()) return 1;
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
   GLFWmonitor* monitor = glfwGetPrimaryMonitor();
   const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
   GLFWwindow* window =
       glfwCreateWindow(mode->width, mode->height, "HumanDetection", NULL, NULL);
   glfwMakeContextCurrent(window);
-  glewExperimental = GL_TRUE;
-  glewInit();
 
   fhd_context detector;
   fhd_context_init(&detector, 512, 424, 8, 8);
 
-  ImGui_ImplGlfwGL3_Init(window, true);
+  ImGui_ImplGlfw_Init(window, true);
   ImGui::GetStyle().WindowRounding = 0.f;
   bool show_window = true;
 
@@ -402,7 +395,7 @@ int main(int argc, char** argv) {
       fhd_ui_update(&ui, ui.depth_frame);
     }
 
-    ImGui_ImplGlfwGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
     int display_w, display_h;
     glfwGetFramebufferSize(window, &display_w, &display_h);
 
@@ -418,6 +411,7 @@ int main(int argc, char** argv) {
     ImGui::BeginChild("toolbar", ImVec2(300.f, float(display_h)));
     render_db_selection(&ui);
     render_classifier_selection(&ui);
+
 
     if (ui.train_mode) {
       ImGui::Text("*** TRAINING DB: %s ***", argv[1]);
@@ -537,7 +531,7 @@ int main(int argc, char** argv) {
 
   fhd_texture_destroy(&ui.depth_texture);
   fhd_classifier_destroy(detector.classifier);
-  ImGui_ImplGlfwGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
   glfwTerminate();
 
   return 0;

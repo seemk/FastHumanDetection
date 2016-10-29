@@ -13,7 +13,8 @@ fhd_texture fhd_create_texture(int width, int height) {
   glBindTexture(GL_TEXTURE_2D, t.handle);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_BGRA,
+               GL_UNSIGNED_BYTE, nullptr);
   return t;
 }
 

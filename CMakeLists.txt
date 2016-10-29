@@ -8,7 +8,6 @@ find_package(OpenMP)
 
 add_subdirectory("third_party/glfw-3.1.2")
 add_subdirectory("third_party/fann")
-add_subdirectory("third_party/glew-1.13.0/build/cmake")
 
 option(KINECT_ENABLED "Use KinectV2 SDK" OFF)
 option(FHD_INSTALL "Generate install target" OFF)
@@ -34,7 +33,6 @@ INCLUDE_DIRECTORIES(SYSTEM
   "third_party/glfw-3.1.2/include"
   "third_party/eigen"
   "third_party/fann/src/include"
-  "third_party/glew-1.13.0/include"
 )
 
 add_subdirectory(src)
