@@ -21,3 +21,4 @@ void fhd_candidate_db_add_candidate(fhd_candidate_db* db,
 int fhd_candidate_db_get_count(fhd_candidate_db* db);
 int fhd_candidate_db_get_features(fhd_candidate_db* db, fhd_result* results,
                                   int max_results);
+const char* fhd_candidate_db_name(const fhd_candidate_db* db);

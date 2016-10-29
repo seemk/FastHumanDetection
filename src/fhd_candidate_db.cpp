@@ -131,6 +131,8 @@ void fhd_candidate_db_init(fhd_candidate_db* db, const char* db_name) {
 void fhd_candidate_db_close(fhd_candidate_db* db) {
   if (!db) return;
 
+  sqlite3_finalize(db->features_query);
+  sqlite3_finalize(db->update_query);
   sqlite3_finalize(db->existing_query);
   sqlite3_finalize(db->insert_query);
   sqlite3_close_v2(db->db);
@@ -224,4 +226,8 @@ int fhd_candidate_db_get_features(fhd_candidate_db* db, fhd_result* results,
   }
 
   return idx;
+}
+
+const char* fhd_candidate_db_name(const fhd_candidate_db* db) {
+  return sqlite3_db_filename(db->db, "main");
 }

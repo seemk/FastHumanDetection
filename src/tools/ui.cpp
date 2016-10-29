@@ -80,18 +80,18 @@ struct fhd_ui {
   bool update_enabled = true;
   bool show_candidates = false;
   bool show_file_selection = false;
-  bool train_mode = false;
   const uint16_t* depth_frame = NULL;
   float detection_threshold = 1.f;
   int filebrowser_selected_index = -1;
   std::vector<fhd_texture> textures;
   std::vector<fhd_color> colors;
   std::vector<bool> selected_candidates;
-  std::string database_name = "none";
+  std::string source_database_name = "none";
   std::string classifier_name = "none";
 
   std::vector<fhd_image> candidate_images;
   fhd_candidate_db candidate_db;
+  int numOutputCandidates = 0;
 };
 
 fhd_ui::fhd_ui(fhd_context* fhd)
@@ -137,6 +137,8 @@ void fhd_ui_commit_candidates(fhd_ui* ui) {
     fhd_candidate* candidate = &ui->fhd->candidates[i];
     fhd_candidate_db_add_candidate(&ui->candidate_db, candidate, human);
   }
+
+  ui->numOutputCandidates = fhd_candidate_db_get_count(&ui->candidate_db);
 }
 
 void fhd_ui_update_candidates(fhd_ui* ui, const fhd_candidate* candidates,
@@ -254,7 +256,7 @@ void render_directory(fhd_ui* ui) {
 }
 
 void render_db_selection(fhd_ui* ui) {
-  if (ImGui::Button("open database")) {
+  if (ImGui::Button("open input database")) {
     ImGui::OpenPopup("select database");
   }
 
@@ -268,10 +270,15 @@ void render_db_selection(fhd_ui* ui) {
         ui->frame_source.reset(
             new fhd_sqlite_source(selected_file->path.c_str()));
         ui->frame_source->advance();
-        ui->database_name = selected_file->name;
+        ui->source_database_name = selected_file->name;
         ui->filebrowser_selected_index = -1;
       }
 
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("cancel")) {
       ImGui::CloseCurrentPopup();
     }
 
@@ -359,10 +366,12 @@ int main(int argc, char** argv) {
   fhd_ui ui(&detector);
 
   if (argc > 1) {
-    const char* train_database = argv[1];
-    ui.train_mode = true;
-    fhd_candidate_db_init(&ui.candidate_db, train_database);
+    fhd_candidate_db_init(&ui.candidate_db, argv[1]);
+  } else {
+    fhd_candidate_db_init(&ui.candidate_db, "output.db");
   }
+
+  ui.numOutputCandidates = fhd_candidate_db_get_count(&ui.candidate_db);
 
   ImVec4 clear_color = ImColor(218, 223, 225);
   while (!glfwWindowShouldClose(window)) {
@@ -370,19 +379,13 @@ int main(int argc, char** argv) {
 
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) break;
 
-    if (ui.train_mode) {
-      if (ImGui::IsKeyPressed(GLFW_KEY_X)) {
-        fhd_ui_clear_candidate_selection(&ui);
-        ui.depth_frame = ui.frame_source->get_frame();
-      }
+    if (ImGui::IsKeyPressed(GLFW_KEY_X)) {
+      fhd_ui_clear_candidate_selection(&ui);
+      ui.depth_frame = ui.frame_source->get_frame();
+    }
 
-      if (ImGui::IsKeyPressed(GLFW_KEY_SPACE)) {
-        fhd_ui_commit_candidates(&ui);
-      }
-    } else {
-      if (ui.update_enabled) {
-        ui.depth_frame = ui.frame_source->get_frame();
-      }
+    if (ImGui::IsKeyPressed(GLFW_KEY_SPACE)) {
+      fhd_ui_commit_candidates(&ui);
     }
 
     if (ui.depth_frame) {
@@ -408,20 +411,18 @@ int main(int argc, char** argv) {
     ImGui::Begin("foo", &show_window,
                  ImVec2(float(display_w), float(display_h)), -1.f, flags);
 
+    ImGui::Text("Hotkeys: X - next frame, SPACE - commit");
+    ImGui::Text("input: %s", ui.source_database_name.c_str());
+    ImGui::Text("output: %s", fhd_candidate_db_name(&ui.candidate_db));
+    ImGui::Text("classifier: %s", ui.classifier_name.c_str());
     ImGui::BeginChild("toolbar", ImVec2(300.f, float(display_h)));
     render_db_selection(&ui);
     render_classifier_selection(&ui);
 
-
-    if (ui.train_mode) {
-      ImGui::Text("*** TRAINING DB: %s ***", argv[1]);
-    }
-
     ImGui::Text("detection pass time %.3f ms", ui.detection_pass_time_ms);
-    ImGui::Text("frame source: %s", ui.database_name.c_str());
-    ImGui::Text("frame %d/%d", ui.frame_source->current_frame(),
+    ImGui::Text("input frame %d/%d", ui.frame_source->current_frame(),
                 ui.frame_source->total_frames());
-    ImGui::Text("classifier: %s", ui.classifier_name.c_str());
+    ImGui::Text("output candidates %d", ui.numOutputCandidates);
     ImGui::Checkbox("update enabled", &ui.update_enabled);
     ImGui::SliderFloat("##det_thresh", &ui.detection_threshold, 0.f, 1.f,
                        "detection threshold %.3f");
@@ -503,16 +504,7 @@ int main(int argc, char** argv) {
 
     ImGui::BeginGroup();
 
-    if (ui.train_mode) {
-      fhd_candidate_selection_grid(&ui, FHD_HOG_WIDTH * 2, FHD_HOG_HEIGHT * 2);
-    } else {
-      for (int i = 0; i < detector.candidates_len; i++) {
-        fhd_texture* t = &ui.textures[i];
-        ImGui::Image((void*)intptr_t(t->handle),
-                     ImVec2(t->width * 2, t->height * 2));
-        if (i % 7 < 6) ImGui::SameLine();
-      }
-    }
+    fhd_candidate_selection_grid(&ui, FHD_HOG_WIDTH * 2, FHD_HOG_HEIGHT * 2);
 
     ImGui::EndGroup();
     ImGui::End();
@@ -525,9 +517,7 @@ int main(int argc, char** argv) {
     glfwSwapBuffers(window);
   }
 
-  if (ui.train_mode) {
-    fhd_candidate_db_close(&ui.candidate_db);
-  }
+  fhd_candidate_db_close(&ui.candidate_db);
 
   fhd_texture_destroy(&ui.depth_texture);
   fhd_classifier_destroy(detector.classifier);
