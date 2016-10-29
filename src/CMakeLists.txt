@@ -51,13 +51,9 @@ add_library(fhd_util
 add_executable(
   fhd_ui
   tools/fhd_filebrowser.cpp
+  tools/fhd_training.cpp
   tools/fhd_texture.cpp
   tools/ui.cpp
-)
-
-add_executable(
-  fhd_train
-  tools/fhd_train.cpp
 )
 
 add_executable(
@@ -75,15 +71,6 @@ target_link_libraries(
   glfw
   floatfann
   ${GLFW_LIBRARIES}
-)
-
-target_link_libraries(
-  fhd_train
-  fhd_util
-  fhd
-  floatfann
-  sqlite
-  ${CMAKE_DL_LIBS}
 )
 
 target_link_libraries(
@@ -121,4 +108,4 @@ set (FHD_HEADERS
 
 install(FILES ${FHD_HEADERS} DESTINATION include)
 install(TARGETS fhd EXPORT fhd DESTINATION lib)
-install(TARGETS fhd_ui fhd_train fhd_test RUNTIME DESTINATION bin)
+install(TARGETS fhd_ui fhd_test RUNTIME DESTINATION bin)

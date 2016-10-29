@@ -77,11 +77,18 @@ void fhd_db_upsert_candidate(fhd_candidate_db* db, const fhd_image* depth,
 // features:blob,
 // human:integer
 
-void fhd_candidate_db_init(fhd_candidate_db* db, const char* db_name) {
-  int res = sqlite3_open(db_name, &db->db);
+bool fhd_candidate_db_init(fhd_candidate_db* db, const char* db_name, bool read_only) {
+
+  int res;
+  if (read_only) {
+    res = sqlite3_open_v2(db_name, &db->db, SQLITE_OPEN_READONLY, nullptr);
+  } else {
+    res = sqlite3_open(db_name, &db->db);
+  }
+
   if (res != SQLITE_OK) {
     printf("failed to open %s: %s\n", db_name, sqlite3_errmsg(db->db));
-    return;
+    return false;
   }
 
   char* err_msg = NULL;
@@ -126,16 +133,18 @@ void fhd_candidate_db_init(fhd_candidate_db* db, const char* db_name) {
                            &db->features_query, NULL);
 
   sqlite_check(res);
+
+  return true;
 }
 
 void fhd_candidate_db_close(fhd_candidate_db* db) {
   if (!db) return;
 
-  sqlite3_finalize(db->features_query);
-  sqlite3_finalize(db->update_query);
-  sqlite3_finalize(db->existing_query);
-  sqlite3_finalize(db->insert_query);
-  sqlite3_close_v2(db->db);
+  if (db->features_query) sqlite3_finalize(db->features_query);
+  if (db->update_query) sqlite3_finalize(db->update_query);
+  if (db->existing_query) sqlite3_finalize(db->existing_query);
+  if (db->insert_query) sqlite3_finalize(db->insert_query);
+  if (db->db) sqlite3_close_v2(db->db);
 }
 
 void fhd_candidate_db_add_candidate(fhd_candidate_db* db,

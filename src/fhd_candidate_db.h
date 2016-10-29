@@ -6,14 +6,14 @@ struct fhd_candidate;
 struct fhd_result;
 
 struct fhd_candidate_db {
-  sqlite3* db;
-  sqlite3_stmt* existing_query;
-  sqlite3_stmt* insert_query;
-  sqlite3_stmt* update_query;
-  sqlite3_stmt* features_query;
+  sqlite3* db = nullptr;
+  sqlite3_stmt* existing_query = nullptr;
+  sqlite3_stmt* insert_query = nullptr;
+  sqlite3_stmt* update_query = nullptr;
+  sqlite3_stmt* features_query = nullptr;
 };
 
-void fhd_candidate_db_init(fhd_candidate_db* db, const char* db_name);
+bool fhd_candidate_db_init(fhd_candidate_db* db, const char* db_name, bool read_only = false);
 void fhd_candidate_db_close(fhd_candidate_db* db);
 void fhd_candidate_db_add_candidate(fhd_candidate_db* db,
                                     const fhd_candidate* candidate,

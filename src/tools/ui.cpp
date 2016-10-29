@@ -1,24 +1,24 @@
-#include <stdio.h>
-#include "../imgui/imgui.h"
-#include "../imgui/imgui_impl_glfw.h"
 #include <GLFW/glfw3.h>
-#include "fhd_debug_frame_source.h"
-#include "../fhd_math.h"
-#include "../fhd_sqlite_source.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <chrono>
+#include <cmath>
+#include <cstring>
+#include "../fhd.h"
+#include "../fhd_candidate_db.h"
 #include "../fhd_classifier.h"
 #include "../fhd_image.h"
 #include "../fhd_kinect.h"
-#include "../fhd.h"
+#include "../fhd_math.h"
 #include "../fhd_segmentation.h"
-#include "../fhd_candidate_db.h"
+#include "../fhd_sqlite_source.h"
+#include "../imgui/imgui.h"
+#include "../imgui/imgui_impl_glfw.h"
 #include "../pcg/pcg_basic.h"
-#include "fhd_texture.h"
+#include "fhd_debug_frame_source.h"
 #include "fhd_filebrowser.h"
-#include <stdlib.h>
-#include <memory>
-#include <cstring>
-#include <cmath>
-#include <chrono>
+#include "fhd_texture.h"
+#include "fhd_training.h"
 
 #if WIN32
 #include "fhd_kinect_source.h"
@@ -80,6 +80,7 @@ struct fhd_ui {
   bool update_enabled = true;
   bool show_candidates = false;
   bool show_file_selection = false;
+  bool show_trainining_window = false;
   const uint16_t* depth_frame = NULL;
   float detection_threshold = 1.f;
   int filebrowser_selected_index = -1;
@@ -92,6 +93,8 @@ struct fhd_ui {
   std::vector<fhd_image> candidate_images;
   fhd_candidate_db candidate_db;
   int numOutputCandidates = 0;
+
+  fhd_training training;
 };
 
 fhd_ui::fhd_ui(fhd_context* fhd)
@@ -340,6 +343,38 @@ void fhd_candidate_selection_grid(fhd_ui* ui, int btn_width, int btn_height) {
   }
 }
 
+void render_training_window(fhd_ui* ui) {
+  if (!ui->show_trainining_window) return;
+
+  fhd_training* training = &ui->training;
+  ImGui::Begin("Training", &ui->show_trainining_window);
+  ImGui::InputText("candidate database", &training->candidate_database_name[0],
+                   training->candidate_database_name.capacity());
+  ImGui::InputText("output classifier", &training->output_classifier_buf[0],
+                   training->output_classifier_buf.size());
+  if (training->running) {
+    if (ImGui::Button("Cancel")) {
+      training->running = false;
+    }
+  } else {
+    if (ImGui::Button("Start training")) {
+      fhd_training_start(&ui->training);
+    }
+  }
+  ImGui::SameLine();
+  std::unique_lock<std::mutex> lock(training->access_lock);
+  if (!training->error.empty()) {
+    ImGui::Text(training->error.c_str());
+  }
+  ImGui::Text("Epoch %d", training->epoch.load());
+
+  ImGui::PlotLines("MSE", training->errors.data(), training->errors.size(), 0,
+                   "error", 0.f, 1.f, ImVec2(800.f, 300.f));
+  lock.unlock();
+
+  ImGui::End();
+}
+
 void glfwError(int error, const char* description) {
   fprintf(stderr, "GLFW error: %i: %s\n", error, description);
 }
@@ -408,7 +443,7 @@ int main(int argc, char** argv) {
                              ImGuiWindowFlags_NoResize |
                              ImGuiWindowFlags_NoTitleBar;
 
-    ImGui::Begin("foo", &show_window,
+    ImGui::Begin("##main", &show_window,
                  ImVec2(float(display_w), float(display_h)), -1.f, flags);
 
     ImGui::Text("Hotkeys: X - next frame, SPACE - commit");
@@ -450,6 +485,10 @@ int main(int argc, char** argv) {
                      200, "min depth seg size");
     ImGui::SliderInt("##min_normal_seg_size", &ui.fhd->min_normal_segment_size,
                      4, 200, "min normal seg size");
+
+    if (ImGui::Button("Training")) {
+      ui.show_trainining_window ^= 1;
+    }
     ImGui::EndChild();
 
     ImGui::SameLine();
@@ -461,7 +500,6 @@ int main(int argc, char** argv) {
     ImVec2 p = ImGui::GetCursorScreenPos();
     ImGui::Image((void*)intptr_t(ui.depth_texture.handle), ImVec2(512, 424));
 
-
     ImU32 rect_color = ImColor(240, 240, 20);
     for (int i = 0; i < detector.candidates_len; i++) {
       const fhd_candidate* candidate = &detector.candidates[i];
@@ -472,12 +510,8 @@ int main(int argc, char** argv) {
         const float y = p.y + float(region.y);
         const float w = float(region.width);
         const float h = float(region.height);
-        ImVec2 points[4] = {
-          ImVec2(x, y),
-          ImVec2(x + w, y),
-          ImVec2(x + w, y + h),
-          ImVec2(x, y + h)
-        };
+        ImVec2 points[4] = {ImVec2(x, y), ImVec2(x + w, y),
+                            ImVec2(x + w, y + h), ImVec2(x, y + h)};
         draw_list->AddPolyline(points, 4, rect_color, true, 4.f, true);
       }
     }
@@ -507,6 +541,9 @@ int main(int argc, char** argv) {
     fhd_candidate_selection_grid(&ui, FHD_HOG_WIDTH * 2, FHD_HOG_HEIGHT * 2);
 
     ImGui::EndGroup();
+
+    render_training_window(&ui);
+
     ImGui::End();
 
     glViewport(0, 0, display_w, display_h);
