@@ -457,12 +457,22 @@ int main(int argc, char** argv) {
     ImGui::Text("detection pass time %.3f ms", ui.detection_pass_time_ms);
     ImGui::Text("input frame %d/%d", ui.frame_source->current_frame(),
                 ui.frame_source->total_frames());
+
+    int jump_frame = ui.frame_source->current_frame();
+    if (ImGui::InputInt("jump to frame", &jump_frame, 1, 100,
+                        ImGuiInputTextFlags_EnterReturnsTrue)) {
+      ui.frame_source->jump(jump_frame);
+      fhd_ui_clear_candidate_selection(&ui);
+      ui.depth_frame = ui.frame_source->get_frame();
+    }
+
     ImGui::Text("output candidates %d", ui.numOutputCandidates);
     ImGui::Checkbox("update enabled", &ui.update_enabled);
     ImGui::SliderFloat("##det_thresh", &ui.detection_threshold, 0.f, 1.f,
                        "detection threshold %.3f");
     ImGui::InputFloat("seg k depth", &ui.fhd->depth_segmentation_threshold);
-    ui.fhd->depth_segmentation_threshold = std::max(0.1f, ui.fhd->depth_segmentation_threshold);
+    ui.fhd->depth_segmentation_threshold =
+        std::max(0.1f, ui.fhd->depth_segmentation_threshold);
     ImGui::InputFloat("seg k normals", &ui.fhd->normal_segmentation_threshold);
     ImGui::SliderFloat("##min_reg_dim", &ui.fhd->min_region_size, 8.f, 100.f,
                        "min region dimension %.1f");
@@ -480,8 +490,8 @@ int main(int argc, char** argv) {
                        3.f, "max region height (m) %.2f");
     ImGui::SliderFloat("##reg_width_min", &ui.fhd->min_region_width, 0.1f, 1.f,
                        "min region width (m) %.2f");
-    ImGui::SliderFloat("##reg_width_max", &ui.fhd->max_region_width, 0.1f,
-                       1.5f, "max region width (m) %.2f");
+    ImGui::SliderFloat("##reg_width_max", &ui.fhd->max_region_width, 0.1f, 1.5f,
+                       "max region width (m) %.2f");
     ImGui::SliderInt("##min_depth_seg_size", &ui.fhd->min_depth_segment_size, 4,
                      200, "min depth seg size %.0f");
     ImGui::SliderInt("##min_normal_seg_size", &ui.fhd->min_normal_segment_size,

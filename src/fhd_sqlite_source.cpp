@@ -79,3 +79,12 @@ int fhd_sqlite_source::current_frame() const {
 int fhd_sqlite_source::total_frames() const {
   return db_total_frames;
 }
+
+void fhd_sqlite_source::jump(int frame) {
+  db_current_frame = frame - 1;
+  if (db_current_frame < 1) {
+    db_current_frame = 1;
+  } else if (db_current_frame > db_total_frames) {
+    db_current_frame = db_total_frames;
+  }
+}

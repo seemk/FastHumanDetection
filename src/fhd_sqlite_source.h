@@ -10,6 +10,7 @@ struct fhd_sqlite_source : fhd_frame_source {
   fhd_sqlite_source(const char* database);
   ~fhd_sqlite_source();
   void advance() override;
+  void jump(int frame) override;
   int current_frame() const override;
   int total_frames() const override;
   const uint16_t* get_frame() override;
