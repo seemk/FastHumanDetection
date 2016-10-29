@@ -364,7 +364,7 @@ void render_training_window(fhd_ui* ui) {
   ImGui::SameLine();
   std::unique_lock<std::mutex> lock(training->access_lock);
   if (!training->error.empty()) {
-    ImGui::Text(training->error.c_str());
+    ImGui::Text("%s", training->error.c_str());
   }
   ImGui::Text("Epoch %d", training->epoch.load());
 
