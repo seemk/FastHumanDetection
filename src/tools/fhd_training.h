@@ -6,10 +6,11 @@
 #include <atomic>
 #include <string>
 #include <vector>
+#include <array>
 
 struct fhd_training {
   int max_epochs = 40000;
-  int target_mse = 0.005f;
+  float target_mse = 0.005f;
   std::atomic<bool> running = ATOMIC_VAR_INIT(false);
   std::atomic<int> epoch;
   std::thread training_thread;

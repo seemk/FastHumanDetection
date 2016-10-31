@@ -23,6 +23,7 @@ if (WIN32)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${ARTIFACT_DIR})
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${ARTIFACT_DIR})
   add_definitions(
+    -DNOMINMAX
     -D_WIN32_WINNT=0x0501
     -D_SCL_SECURE_NO_WARNINGS
     -D_CRT_SECURE_NO_WARNINGS
@@ -34,10 +35,13 @@ else()
   add_definitions(-Wall -Wextra -march=native)
 endif()
 
+add_definitions(-DGLFW_INCLUDE_GLEXT)
+
 INCLUDE_DIRECTORIES(SYSTEM
   "third_party/glfw-3.1.2/include"
   "third_party/eigen"
   "third_party/fann/src/include"
+  src
 )
 
 add_subdirectory(src)

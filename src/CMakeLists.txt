@@ -109,3 +109,10 @@ set (FHD_HEADERS
 install(FILES ${FHD_HEADERS} DESTINATION include)
 install(TARGETS fhd EXPORT fhd DESTINATION lib)
 install(TARGETS fhd_ui fhd_test RUNTIME DESTINATION bin)
+
+if (WIN32)
+  add_custom_command(
+    TARGET fhd POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE_DIR:floatfann>/floatfann.dll ${ARTIFACT_DIR}
+  )
+endif()

@@ -26,7 +26,7 @@ void fhd_training_set_errortext(fhd_training* t, std::string err) {
 void fhd_train(fhd_training* t) {
   t->epoch = 0;
   int epochs = t->max_epochs;
-  int target_mse = t->target_mse;
+  float target_mse = t->target_mse;
   std::string out_file = t->output_classifier_buf.data();
   const int features_length = 3780;
   fhd_candidate_db db;

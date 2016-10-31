@@ -81,7 +81,7 @@ void fhd_segment_graph(fhd_segmentation* u, fhd_edge* edges, int num_edges,
         fhd_segmentation_join(u, a, b);
         a = fhd_segmentation_find(u, a);
         u->threshold[a] =
-            e->weight + threshold_value(fhd_segmentation_size(u, a), c);
+            e->weight + threshold_value(float(fhd_segmentation_size(u, a)), c);
       }
     }
   }

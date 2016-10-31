@@ -19,6 +19,7 @@
 #include "fhd_filebrowser.h"
 #include "fhd_texture.h"
 #include "fhd_training.h"
+#include <algorithm>
 
 #if WIN32
 #include "fhd_kinect_source.h"
@@ -321,6 +322,8 @@ void render_classifier_selection(fhd_ui* ui) {
 }
 
 void fhd_candidate_selection_grid(fhd_ui* ui, int btn_width, int btn_height) {
+  const float bwidth = float(btn_width);
+  const float bheight = float(btn_height);
   for (int i = 0; i < ui->fhd->candidates_len; i++) {
     fhd_texture* texture = &ui->textures[i];
     bool selected = ui->selected_candidates[i];
@@ -328,12 +331,12 @@ void fhd_candidate_selection_grid(fhd_ui* ui, int btn_width, int btn_height) {
     void* handle = (void*)intptr_t(texture->handle);
     if (selected) {
       if (ImGui::ImageButton(
-              handle, ImVec2(btn_width, btn_height), ImVec2(0, 0), ImVec2(1, 1),
+              handle, ImVec2(bwidth, bheight), ImVec2(0, 0), ImVec2(1, 1),
               4, ImVec4(1.f, 1.f, 1.f, 1.f), ImVec4(0.f, 1.f, 0.f, 1.f))) {
         ui->selected_candidates[i] = false;
       }
     } else {
-      if (ImGui::ImageButton(handle, ImVec2(btn_width, btn_height),
+      if (ImGui::ImageButton(handle, ImVec2(bwidth, bheight),
                              ImVec2(0, 0), ImVec2(1, 1), 2)) {
         ui->selected_candidates[i] = true;
       }
@@ -368,7 +371,7 @@ void render_training_window(fhd_ui* ui) {
   }
   ImGui::Text("Epoch %d", training->epoch.load());
 
-  ImGui::PlotLines("MSE", training->errors.data(), training->errors.size(), 0,
+  ImGui::PlotLines("MSE", training->errors.data(), int(training->errors.size()), 0,
                    "error", 0.f, 1.f, ImVec2(800.f, 300.f));
   lock.unlock();
 
