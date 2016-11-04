@@ -1,6 +1,7 @@
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -19,7 +20,6 @@
 #include "fhd_filebrowser.h"
 #include "fhd_texture.h"
 #include "fhd_training.h"
-#include <algorithm>
 
 #if WIN32
 #include "fhd_kinect_source.h"
@@ -63,6 +63,12 @@ void update_depth_texture(uint8_t* texture_data, const uint16_t* depth,
   }
 }
 
+enum selection_state {
+  sel_state_deselected,
+  sel_state_selected,
+  sel_state_discard
+};
+
 struct fhd_ui {
   fhd_ui(fhd_context* fhd);
 
@@ -87,7 +93,7 @@ struct fhd_ui {
   int filebrowser_selected_index = -1;
   std::vector<fhd_texture> textures;
   std::vector<fhd_color> colors;
-  std::vector<bool> selected_candidates;
+  std::vector<selection_state> selected_candidates;
   std::string source_database_name = "none";
   std::string classifier_name = "none";
 
@@ -107,7 +113,7 @@ fhd_ui::fhd_ui(fhd_context* fhd)
       downscaled_depth(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       depth_segmentation(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
       filtered_regions(fhd_create_texture(fhd->cells_x, fhd->cells_y)),
-      selected_candidates(fhd->candidates_capacity, false),
+      selected_candidates(fhd->candidates_capacity, sel_state_deselected),
       candidate_images(fhd->candidates_capacity) {
 #if WIN32
   frame_source.reset(new fhd_kinect_source());
@@ -131,14 +137,19 @@ fhd_ui::fhd_ui(fhd_context* fhd)
 
 void fhd_ui_clear_candidate_selection(fhd_ui* ui) {
   for (size_t i = 0; i < ui->selected_candidates.size(); i++) {
-    ui->selected_candidates[i] = false;
+    ui->selected_candidates[i] = sel_state_deselected;
   }
 }
 
 void fhd_ui_commit_candidates(fhd_ui* ui) {
   for (int i = 0; i < ui->fhd->candidates_len; i++) {
-    bool human = ui->selected_candidates[i];
+    selection_state selection = ui->selected_candidates[i];
+    if (selection == sel_state_discard) {
+      continue;
+    }
+
     fhd_candidate* candidate = &ui->fhd->candidates[i];
+    bool human = selection == sel_state_selected;
     fhd_candidate_db_add_candidate(&ui->candidate_db, candidate, human);
   }
 
@@ -324,22 +335,38 @@ void render_classifier_selection(fhd_ui* ui) {
 void fhd_candidate_selection_grid(fhd_ui* ui, int btn_width, int btn_height) {
   const float bwidth = float(btn_width);
   const float bheight = float(btn_height);
+  const ImVec2 size(bwidth, bheight);
+
   for (int i = 0; i < ui->fhd->candidates_len; i++) {
     fhd_texture* texture = &ui->textures[i];
-    bool selected = ui->selected_candidates[i];
+
+    selection_state selection = ui->selected_candidates[i];
 
     void* handle = (void*)intptr_t(texture->handle);
-    if (selected) {
-      if (ImGui::ImageButton(
-              handle, ImVec2(bwidth, bheight), ImVec2(0, 0), ImVec2(1, 1),
-              4, ImVec4(1.f, 1.f, 1.f, 1.f), ImVec4(0.f, 1.f, 0.f, 1.f))) {
-        ui->selected_candidates[i] = false;
+    switch (selection) {
+      case sel_state_selected: {
+        if (ImGui::ImageButton(handle, size, ImVec2(0, 0), ImVec2(1, 1), 2,
+                               ImVec4(1.f, 1.f, 1.f, 1.f),
+                               ImVec4(0.f, 1.f, 0.f, 1.f))) {
+          ui->selected_candidates[i] = sel_state_discard;
+        }
+        break;
       }
-    } else {
-      if (ImGui::ImageButton(handle, ImVec2(bwidth, bheight),
-                             ImVec2(0, 0), ImVec2(1, 1), 2)) {
-        ui->selected_candidates[i] = true;
+      case sel_state_discard: {
+        if (ImGui::ImageButton(handle, size, ImVec2(0, 0), ImVec2(1, 1), 2,
+                               ImVec4(1.f, 1.f, 1.f, 1.f),
+                               ImVec4(1.f, 1.f, 0.f, 1.f))) {
+          ui->selected_candidates[i] = sel_state_deselected;
+        }
+      } break;
+      case sel_state_deselected: {
+        if (ImGui::ImageButton(handle, size, ImVec2(0, 0), ImVec2(1, 1), 2)) {
+          ui->selected_candidates[i] = sel_state_selected;
+        }
+        break;
       }
+      default:
+        break;
     }
 
     if (i % 7 < 6) ImGui::SameLine();
@@ -371,8 +398,8 @@ void render_training_window(fhd_ui* ui) {
   }
   ImGui::Text("Epoch %d", training->epoch.load());
 
-  ImGui::PlotLines("MSE", training->errors.data(), int(training->errors.size()), 0,
-                   "error", 0.f, 1.f, ImVec2(800.f, 300.f));
+  ImGui::PlotLines("MSE", training->errors.data(), int(training->errors.size()),
+                   0, "error", 0.f, FLT_MAX, ImVec2(800.f, 300.f));
   lock.unlock();
 
   ImGui::End();
@@ -417,16 +444,27 @@ int main(int argc, char** argv) {
 
     if (ImGui::IsKeyPressed(GLFW_KEY_ESCAPE)) break;
 
+    if (ImGui::IsKeyPressed(GLFW_KEY_Q)) {
+      ui.update_enabled ^= 1;
+    }
+
     if (ImGui::IsKeyPressed(GLFW_KEY_X)) {
       fhd_ui_clear_candidate_selection(&ui);
       ui.depth_frame = ui.frame_source->get_frame();
+      auto t1 = std::chrono::high_resolution_clock::now();
+      fhd_run_pass(&detector, ui.depth_frame);
+      auto t2 = std::chrono::high_resolution_clock::now();
+      auto duration =
+          std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+      ui.detection_pass_time_ms = double(duration.count()) / 1000.0;
+      fhd_ui_update(&ui, ui.depth_frame);
     }
 
     if (ImGui::IsKeyPressed(GLFW_KEY_SPACE)) {
       fhd_ui_commit_candidates(&ui);
     }
 
-    if (ui.depth_frame) {
+    if (ui.depth_frame && ui.update_enabled) {
       auto t1 = std::chrono::high_resolution_clock::now();
       fhd_run_pass(&detector, ui.depth_frame);
       auto t2 = std::chrono::high_resolution_clock::now();
@@ -477,7 +515,7 @@ int main(int argc, char** argv) {
     ui.fhd->depth_segmentation_threshold =
         std::max(0.1f, ui.fhd->depth_segmentation_threshold);
     ImGui::InputFloat("seg k normals", &ui.fhd->normal_segmentation_threshold);
-    ImGui::SliderFloat("##min_reg_dim", &ui.fhd->min_region_size, 8.f, 100.f,
+    ImGui::SliderFloat("##min_reg_dim", &ui.fhd->min_region_size, 1.f, 100.f,
                        "min region dimension %.1f");
     ImGui::SliderFloat("##merge_dist_x", &ui.fhd->max_merge_distance, 0.1f, 2.f,
                        "max h merge dist (m) %.2f");
@@ -495,10 +533,10 @@ int main(int argc, char** argv) {
                        "min region width (m) %.2f");
     ImGui::SliderFloat("##reg_width_max", &ui.fhd->max_region_width, 0.1f, 1.5f,
                        "max region width (m) %.2f");
-    ImGui::SliderInt("##min_depth_seg_size", &ui.fhd->min_depth_segment_size, 4,
+    ImGui::SliderInt("##min_depth_seg_size", &ui.fhd->min_depth_segment_size, 1,
                      200, "min depth seg size %.0f");
     ImGui::SliderInt("##min_normal_seg_size", &ui.fhd->min_normal_segment_size,
-                     4, 200, "min normal seg size %.0f");
+                     1, 200, "min normal seg size %.0f");
 
     if (ImGui::Button("Training")) {
       ui.show_trainining_window ^= 1;

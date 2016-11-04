@@ -530,19 +530,19 @@ void fhd_context_init(fhd_context* fhd, int source_w, int source_h, int cell_w,
   fhd->cells_y = source_h / cell_h;
   fhd->cells_len = fhd->cells_x * fhd->cells_y;
 
-  fhd->min_region_size = 9.f;
-  fhd->max_merge_distance = 0.5f;
-  fhd->max_vertical_merge_distance = 1.5f;
+  fhd->min_region_size = 1.f;
+  fhd->max_merge_distance = 0.46f;
+  fhd->max_vertical_merge_distance = 1.0f;
   fhd->min_inlier_fraction = 0.80f;
-  fhd->min_region_height = 1.f;
+  fhd->min_region_height = 0.52f;
   fhd->max_region_height = 3.f;
   fhd->min_region_width = 0.3f;
-  fhd->max_region_width = 1.2f;
+  fhd->max_region_width = 1.0f;
   fhd->ransac_max_plane_distance = 0.05f;
-  fhd->min_depth_segment_size = 5;
-  fhd->min_normal_segment_size = 10;
-  fhd->depth_segmentation_threshold = 1.f;
-  fhd->normal_segmentation_threshold = 1.f;
+  fhd->min_depth_segment_size = 10;
+  fhd->min_normal_segment_size = 1;
+  fhd->depth_segmentation_threshold = 4.f;
+  fhd->normal_segmentation_threshold = 4.f;
 
   fhd->point_allocator =
       fhd_block_allocator_create(sizeof(fhd_region_point) * 2048, 512);

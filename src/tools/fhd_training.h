@@ -10,7 +10,7 @@
 
 struct fhd_training {
   int max_epochs = 40000;
-  float target_mse = 0.005f;
+  float target_mse = 0.001f;
   std::atomic<bool> running = ATOMIC_VAR_INIT(false);
   std::atomic<int> epoch;
   std::thread training_thread;
