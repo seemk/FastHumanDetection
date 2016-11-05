@@ -1,15 +1,15 @@
 #include "fhd.h"
-#include "fhd_block_allocator.h"
-#include "fhd_classifier.h"
-#include "fhd_segmentation.h"
-#include "fhd_kinect.h"
-#include "pcg/pcg_basic.h"
 #include <assert.h>
+#include <emmintrin.h>
+#include <string.h>
 #include <time.h>
 #include <algorithm>
-#include <string.h>
 #include <unordered_map>
-#include <emmintrin.h>
+#include "fhd_block_allocator.h"
+#include "fhd_classifier.h"
+#include "fhd_kinect.h"
+#include "fhd_segmentation.h"
+#include "pcg/pcg_basic.h"
 
 #ifdef FHD_OMP
 #include <omp.h>
@@ -545,7 +545,7 @@ void fhd_context_init(fhd_context* fhd, int source_w, int source_h, int cell_w,
   fhd->normal_segmentation_threshold = 4.f;
 
   fhd->point_allocator =
-      fhd_block_allocator_create(sizeof(fhd_region_point) * 2048, 512);
+      fhd_block_allocator_create(sizeof(fhd_region_point) * 2048, 1024);
 
   fhd_image_init(&fhd->normalized_source, source_w, source_h);
   fhd->downscaled_depth = (uint16_t*)calloc(fhd->cells_len, sizeof(uint16_t));
@@ -618,8 +618,6 @@ void fhd_context_init(fhd_context* fhd, int source_w, int source_h, int cell_w,
   uint64_t rng_initseq = rng_seed >> 32;
   printf("seed: %llu seq: %llu\n", rng_seed, rng_initseq);
   pcg32_srandom_r(fhd->rng, rng_seed, rng_initseq);
-
-  fhd->classifier = NULL;
 }
 
 void fhd_copy_depth(fhd_context* fhd, const uint16_t* source) {
@@ -652,14 +650,6 @@ void fhd_run_pass(fhd_context* fhd, const uint16_t* source) {
   fhd_copy_regions(fhd);
   fhd_calculate_hog_cells(fhd);
   fhd_create_features(fhd);
-
-  FHD_TIMED_BLOCK(&fhd->perf_records[pr_classify]);
-  if (fhd->classifier) {
-    for (int i = 0; i < fhd->candidates_len; i++) {
-      fhd_candidate* candidate = &fhd->candidates[i];
-      candidate->weight = fhd_classify(fhd->classifier, candidate);
-    }
-  }
 }
 
 void fhd_context_destroy(fhd_context* fhd) {
@@ -688,4 +678,12 @@ void fhd_context_destroy(fhd_context* fhd) {
   free(fhd->sampler);
   free(fhd->cell_sample_buffer);
   free(fhd->rng);
+}
+
+void fhd_run_classifier(fhd_context* fhd, const fhd_classifier* classifier) {
+  FHD_TIMED_BLOCK(&fhd->perf_records[pr_classify]);
+  for (int i = 0; i < fhd->candidates_len; i++) {
+    fhd_candidate* candidate = &fhd->candidates[i];
+    candidate->weight = fhd_classify(classifier, candidate);
+  }
 }

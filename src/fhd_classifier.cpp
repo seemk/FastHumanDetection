@@ -17,7 +17,7 @@ fhd_classifier* fhd_classifier_create(const char* nn_file) {
   return NULL;
 }
 
-float fhd_classify(fhd_classifier* classifier, const fhd_candidate* candidate) {
+float fhd_classify(const fhd_classifier* classifier, const fhd_candidate* candidate) {
   float* output = fann_run(classifier->nn, candidate->features);
   return output[0];
 }

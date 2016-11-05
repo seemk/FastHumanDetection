@@ -23,7 +23,6 @@ int main(int argc, char** argv) {
 
   fhd_context detector;
   fhd_context_init(&detector, 512, 424, 8, 8);
-  detector.classifier = classifier;
 
 #if WIN32
   auto source = std::unique_ptr<fhd_frame_source>(new fhd_kinect_source());
@@ -34,6 +33,7 @@ int main(int argc, char** argv) {
 
   for (int i = 0; i < 10; i++) {
     fhd_run_pass(&detector, source->get_frame());
+    fhd_run_classifier(&detector, classifier);
     for (int j = 0; j < detector.candidates_len; j++) {
       fhd_candidate* candidate = &detector.candidates[j];
       int x = candidate->depth_position.x;
@@ -43,6 +43,7 @@ int main(int argc, char** argv) {
              y + candidate->depth_position.height, candidate->weight);
     }
   }
+
 
   fhd_classifier_destroy(classifier);
   fhd_context_destroy(&detector);

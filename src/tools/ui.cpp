@@ -73,6 +73,7 @@ struct fhd_ui {
   fhd_ui(fhd_context* fhd);
 
   fhd_context* fhd = NULL;
+  fhd_classifier* classifier = NULL;
   fhd_filebrowser file_browser;
   std::unique_ptr<fhd_frame_source> frame_source;
 
@@ -314,11 +315,11 @@ void render_classifier_selection(fhd_ui* ui) {
       int path_index = ui->filebrowser_selected_index;
       const fhd_file* selected_file = ui->file_browser.get_file(path_index);
       if (selected_file) {
-        fhd_classifier_destroy(ui->fhd->classifier);
+        fhd_classifier_destroy(ui->classifier);
 
-        ui->fhd->classifier =
+        ui->classifier =
             fhd_classifier_create(selected_file->path.c_str());
-        if (ui->fhd->classifier) {
+        if (ui->classifier) {
           ui->classifier_name = selected_file->name;
         } else {
           ui->classifier_name = "none";
@@ -453,6 +454,11 @@ int main(int argc, char** argv) {
       ui.depth_frame = ui.frame_source->get_frame();
       auto t1 = std::chrono::high_resolution_clock::now();
       fhd_run_pass(&detector, ui.depth_frame);
+
+      if (ui.classifier) {
+        fhd_run_classifier(ui.fhd, ui.classifier);  
+      }
+
       auto t2 = std::chrono::high_resolution_clock::now();
       auto duration =
           std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
@@ -609,7 +615,7 @@ int main(int argc, char** argv) {
   fhd_candidate_db_close(&ui.candidate_db);
 
   fhd_texture_destroy(&ui.depth_texture);
-  fhd_classifier_destroy(detector.classifier);
+  fhd_classifier_destroy(ui.classifier);
   ImGui_ImplGlfw_Shutdown();
   glfwTerminate();
 

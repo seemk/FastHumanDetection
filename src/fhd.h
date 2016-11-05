@@ -95,8 +95,6 @@ struct fhd_context {
 
   pcg_state_setseq_64* rng;
 
-  fhd_classifier* classifier;
-
   int sampler_len;
   fhd_index_2d* sampler;
   uint16_t* cell_sample_buffer;
@@ -104,4 +102,5 @@ struct fhd_context {
 
 void fhd_context_init(fhd_context* fhd, int source_w, int source_h, int cell_w, int cell_h);
 void fhd_run_pass(fhd_context* fhd, const uint16_t* source);
+void fhd_run_classifier(fhd_context* fhd, const fhd_classifier* classifier);
 void fhd_context_destroy(fhd_context* fhd);
