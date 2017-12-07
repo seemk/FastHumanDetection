@@ -90,7 +90,7 @@ struct fhd_ui {
   bool show_file_selection = false;
   bool show_trainining_window = false;
   const uint16_t* depth_frame = NULL;
-  float detection_threshold = 1.f;
+  float detection_threshold = 0.95f;
   int filebrowser_selected_index = -1;
   std::vector<fhd_texture> textures;
   std::vector<fhd_color> colors;
@@ -515,7 +515,7 @@ int main(int argc, char** argv) {
 
     ImGui::Text("output candidates %d", ui.numOutputCandidates);
     ImGui::Checkbox("update enabled", &ui.update_enabled);
-    ImGui::SliderFloat("##det_thresh", &ui.detection_threshold, 0.f, 1.f,
+    ImGui::SliderFloat("##det_thresh", &ui.detection_threshold, -1.f, 1.f,
                        "detection threshold %.3f");
     ImGui::InputFloat("seg k depth", &ui.fhd->depth_segmentation_threshold);
     ui.fhd->depth_segmentation_threshold =
@@ -561,7 +561,7 @@ int main(int argc, char** argv) {
     ImU32 rect_color = ImColor(240, 240, 20);
     for (int i = 0; i < detector.candidates_len; i++) {
       const fhd_candidate* candidate = &detector.candidates[i];
-      if (candidate->weight >= 1.f) {
+      if (candidate->weight >= ui.detection_threshold) {
         const fhd_image_region region = candidate->depth_position;
 
         const float x = p.x + float(region.x);

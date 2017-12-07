@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
   int true_negatives = 0;
   int false_positives = 0;
   int false_negatives = 0;
-  const float weight_threshold = 1.f;
+  const float weight_threshold = 0.95f;
 
   for (int i = 0; i < count; i++) {
     bool expected = output[i] >= weight_threshold;
