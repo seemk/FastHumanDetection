@@ -39,5 +39,4 @@ X advances to the next frame
 
 After creating the training set, a classifier can be trained under the Training tab.
 
-### TODO
-* Provide pretrained classifier, datasets
+![Training UI snapshot](misc/ui.png)
